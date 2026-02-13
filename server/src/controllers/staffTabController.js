@@ -78,8 +78,12 @@ export async function payTab(req, res, next) {
     tab.status = "PAID";
     tab.amountPaidCents = totalCents;
     tab.amountDueCents = 0;
-    tab.paymentMethod = String(method)
-    tab.paidAt = new Date();
+    tab.payment = tab.payment || {};
+    tab.payment.subtotalCents = tab.subtotalCents ?? 0;
+    tab.payment.totalCents = totalCents;
+    tab.payment.method = String(method)
+    tab.payment.paidAt = new Date();
+    tab.payment.paidBy = req.user?._id ?? null;
 
     await tab.save();
 
@@ -132,17 +136,18 @@ export async function closeTab(req, res, next) {
     console.log("🧾 closeTab called:", { tabId });
 
     const tab = await Tab.findById(tabId);
-    // if (!tab) return res.status(404).json({ message: "Tab not found" });
     if (!tab) {
       console.log("❌ closeTab: Tab not found");
       return res.status(404).json({ message: "Tab not found" });
     }
+
     console.log("✅ closeTab: Found tab:", {
       tabId: String(tab._id),
       status: tab.status,
       table: tab.table,
     });
 
+    // Only PAID tabs can be closed
     if (tab.status !== "PAID") {
       console.log("❌ closeTab: Tab not PAID:", tab.status);
       return res
@@ -150,55 +155,38 @@ export async function closeTab(req, res, next) {
         .json({ message: "Tab must be paid before closing" });
     }
 
+    // Block closing if there are still open service requests
     const openReq = await ServiceRequest.findOne({
-  tab: tab._id,
-  status: { $ne: "DONE" },
-}).select("_id type status");
+      tab: tab._id,
+      status: { $ne: "DONE" },
+    }).select("_id type status");
 
-if (openReq) {
-  return res.status(409).json({
-    message: "Cannot close tab: there are still open service requests.",
-    openRequest: {
-      id: String(openReq._id),
-      type: openReq.type,
-      status: openReq.status,
-    },
-  });
-}
+    if (openReq) {
+      return res.status(409).json({
+        message: "Cannot close tab: there are still open service requests.",
+        openRequest: {
+          id: String(openReq._id),
+          type: openReq.type,
+          status: openReq.status,
+        },
+      });
+    }
 
-
-    // close tab
+    // ✅ Close tab + timestamp
     tab.status = "CLOSED";
-    console.log("✅ closeTab: Tab saved as CLOSED");
+    tab.closedAt = new Date();
     await tab.save();
 
-    // free table
+    console.log("✅ closeTab: Tab saved as CLOSED", {
+      tabId: String(tab._id),
+      closedAt: tab.closedAt,
+    });
+
+    // ✅ Free table
     const tableId = tab.table?._id ?? tab.table;
     console.log("🔎 closeTab: tableId resolved:", String(tableId));
 
-//     const table = await Table.findById(tableId);
-//     if (table) {
-//       table.status = "FREE";
-//       table.activeTab = null;
-//       table.assignedAt = null;
-//       table.joinCode = null;
-//       table.joinCodeExpiresAt = null;
-//       await table.save();
-//     }
-
-//     const io = req.app.get("io");
-//     io.to("staff").emit("services:updated", { tableId, tabId: tab._id });
-//     io.to("staff").emit("tickets:updated", { tableId, tabId: tab._id });
-//     io.to("staff").emit("tab:updated", { tableId, tabId: tab._id });
-//     io.to(`table:${tableId}`).emit("tab:updated", { tableId, tabId: tab._id });
-
-//     res.json({ ok: true });
-//   } catch (err) {
-//     next(err);
-//   }
-    // }
-    
-        const table = await Table.findById(tableId);
+    const table = await Table.findById(tableId);
     if (!table) {
       console.log("❌ closeTab: Table not found for id:", String(tableId));
     } else {
@@ -224,18 +212,30 @@ if (openReq) {
       });
     }
 
+    // 🔔 Realtime invalidation events (staff + guest)
     const io = req.app.get("io");
     if (io) {
       console.log("📣 closeTab: emitting socket invalidations");
       io.to("staff").emit("services:updated", { tableId, tabId: tab._id });
       io.to("staff").emit("tickets:updated", { tableId, tabId: tab._id });
       io.to("staff").emit("tab:updated", { tableId, tabId: tab._id });
-      io.to(`table:${tableId}`).emit("tab:updated", { tableId, tabId: tab._id });
+
+      io.to(`table:${tableId}`).emit("tab:updated", {
+        tableId,
+        tabId: tab._id,
+      });
+
+      // ✅ Optional: finance page can listen to this and auto-refresh
+      io.to("staff").emit("finance:updated", {
+        tabId: tab._id,
+        tableId,
+        closedAt: tab.closedAt,
+      });
     } else {
       console.log("⚠️ closeTab: io missing on req.app");
     }
 
-    res.json({ ok: true });
+    return res.json({ ok: true, tabId: String(tab._id), closedAt: tab.closedAt });
   } catch (err) {
     console.error("❌ closeTab error:", err);
     next(err);

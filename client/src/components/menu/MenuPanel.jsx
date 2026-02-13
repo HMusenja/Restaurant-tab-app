@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { UtensilsCrossed } from "lucide-react";
-import CategoryTabs from "./CategoryTabs.jsx";
+import CategoryTabs from "../guest/CategoryTabs.jsx";
 import MenuItemCard from "./MenuItemCard.jsx";
 
 function formatEUR(cents) {

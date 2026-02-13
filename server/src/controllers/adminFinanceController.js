@@ -1,52 +1,63 @@
-// controllers/adminFinanceController.js  (SERVER) ✅ Monday weeks + exclusive to support
+// controllers/adminFinanceController.js
 import Tab from "../models/Tab.js";
 
+/**
+ * Finance Summary (clean + consistent)
+ *
+ * Definitions:
+ * - Revenue/Paid: tabs with payment.paidAt in range (regardless of final status)
+ * - Closed: tabs with closedAt in range (operationally closed)  ✅ requires Tab.closedAt
+ *
+ * Query params:
+ * - from: ISO date or YYYY-MM-DD
+ * - to: ISO date or YYYY-MM-DD
+ * - toMode: "inclusive" (default) or "exclusive"
+ * - groupBy: "day" | "week" | "month"  (default "day")
+ * - limit: 1..100 recent lists (default 20)
+ */
 export async function getFinanceSummary(req, res, next) {
   try {
     const { from, to, groupBy = "day", toMode = "inclusive" } = req.query;
     const limit = Math.max(1, Math.min(Number(req.query.limit || 20), 100));
 
-    const match = {
-      status: { $in: ["PAID", "CLOSED"] },
-      "payment.paidAt": { $type: "date" },
+    // ---------- helpers ----------
+    const parseDate = (v) => {
+      if (!v) return null;
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? null : d;
     };
 
-    if (from || to) {
-      match["payment.paidAt"] = { ...match["payment.paidAt"] };
+    // We interpret `to` as:
+    // - inclusive: include entire day => < (to + 1 day)
+    // - exclusive: < to
+    const buildRange = (field) => {
+      const range = { [field]: { $type: "date" } };
 
-      if (from) {
-        const d = new Date(from);
-        if (!Number.isNaN(d.getTime())) match["payment.paidAt"].$gte = d;
-      }
+      const f = parseDate(from);
+      const t = parseDate(to);
 
-      if (to) {
-        const d = new Date(to);
-        if (!Number.isNaN(d.getTime())) {
-          if (String(toMode).toLowerCase() === "exclusive") {
-            // ✅ to is exclusive boundary
-            match["payment.paidAt"].$lt = d;
-          } else {
-            // ✅ to is inclusive DAY (old behavior)
-            const end = new Date(d);
-            end.setDate(end.getDate() + 1);
-            match["payment.paidAt"].$lt = end;
-          }
+      if (f || t) range[field] = { ...range[field] };
+
+      if (f) range[field].$gte = f;
+
+      if (t) {
+        if (String(toMode).toLowerCase() === "exclusive") {
+          range[field].$lt = t;
+        } else {
+          const end = new Date(t);
+          end.setDate(end.getDate() + 1);
+          range[field].$lt = end;
         }
       }
-    }
 
-    const addFields = {
-      subtotalCentsPaid: { $ifNull: ["$payment.subtotalCents", 0] },
-      grossCentsPaid: { $ifNull: ["$payment.totalCents", 0] },
+      return range;
     };
 
-    const addFields2 = {
-      tipCents: { $max: [0, { $subtract: ["$grossCentsPaid", "$subtotalCentsPaid"] }] },
-    };
+    const paidAtRangeMatch = buildRange("payment.paidAt");
+    const closedAtRangeMatch = buildRange("closedAt");
 
+    // Trend buckets use paidAt (revenue trend)
     const paidAtField = "$payment.paidAt";
-
-    // ✅ bucket Date using $dateTrunc (Monday weeks)
     const bucketDate =
       groupBy === "month"
         ? { $dateTrunc: { date: paidAtField, unit: "month" } }
@@ -54,7 +65,6 @@ export async function getFinanceSummary(req, res, next) {
           ? { $dateTrunc: { date: paidAtField, unit: "week", startOfWeek: "Mon" } }
           : { $dateTrunc: { date: paidAtField, unit: "day" } };
 
-    // ✅ bucket label string (what your frontend uses)
     const bucketLabel = {
       $dateToString: {
         date: "$_id",
@@ -62,17 +72,34 @@ export async function getFinanceSummary(req, res, next) {
       },
     };
 
+    // Paid money fields (source of truth)
+    // If you ever store payment totals differently, adjust here.
+    const addFields = {
+      subtotalCentsPaid: { $ifNull: ["$payment.subtotalCents", 0] },
+      grossCentsPaid: { $ifNull: ["$payment.totalCents", 0] },
+    };
+
+    const addFields2 = {
+      tipCents: {
+        $max: [0, { $subtract: ["$grossCentsPaid", "$subtotalCentsPaid"] }],
+      },
+    };
+
+    // ---------- pipeline ----------
     const [result] = await Tab.aggregate([
-      { $match: match },
+      // We do NOT filter by status here; revenue is driven by paidAt,
+      // and closed stats are driven by closedAt.
       { $addFields: addFields },
       { $addFields: addFields2 },
 
       {
         $facet: {
-          kpis: [
+          // ✅ REVENUE KPIs (Paid in range)
+          paidKpis: [
+            { $match: paidAtRangeMatch },
             {
               $group: {
-                _id: "$status",
+                _id: null,
                 grossCents: { $sum: "$grossCentsPaid" },
                 subtotalCents: { $sum: "$subtotalCentsPaid" },
                 tipsCents: { $sum: "$tipCents" },
@@ -81,10 +108,26 @@ export async function getFinanceSummary(req, res, next) {
             },
           ],
 
-          trend: [
+          // ✅ CLOSED KPIs (Closed in range) – requires closedAt
+          closedKpis: [
+            { $match: closedAtRangeMatch },
             {
               $group: {
-                _id: bucketDate, // Date
+                _id: null,
+                grossCents: { $sum: "$grossCentsPaid" },
+                subtotalCents: { $sum: "$subtotalCentsPaid" },
+                tipsCents: { $sum: "$tipCents" },
+                count: { $sum: 1 },
+              },
+            },
+          ],
+
+          // ✅ Revenue trend (Paid in range)
+          trend: [
+            { $match: paidAtRangeMatch },
+            {
+              $group: {
+                _id: bucketDate, // Date bucket
                 grossCents: { $sum: "$grossCentsPaid" },
                 subtotalCents: { $sum: "$subtotalCentsPaid" },
                 tipsCents: { $sum: "$tipCents" },
@@ -95,7 +138,7 @@ export async function getFinanceSummary(req, res, next) {
             {
               $project: {
                 _id: 0,
-                bucket: bucketLabel, // string label for X axis
+                bucket: bucketLabel,
                 grossCents: 1,
                 subtotalCents: 1,
                 tipsCents: 1,
@@ -104,8 +147,9 @@ export async function getFinanceSummary(req, res, next) {
             },
           ],
 
+          // ✅ Recent Paid (Paid in range, ordered by paidAt)
           recentPaid: [
-            { $match: { status: "PAID" } },
+            { $match: paidAtRangeMatch },
             { $sort: { "payment.paidAt": -1 } },
             { $limit: limit },
             {
@@ -132,9 +176,10 @@ export async function getFinanceSummary(req, res, next) {
             },
           ],
 
+          // ✅ Recent Closed (Closed in range, ordered by closedAt)
           recentClosed: [
-            { $match: { status: "CLOSED" } },
-            { $sort: { "payment.paidAt": -1 } },
+            { $match: closedAtRangeMatch },
+            { $sort: { closedAt: -1 } },
             { $limit: limit },
             {
               $lookup: {
@@ -149,6 +194,7 @@ export async function getFinanceSummary(req, res, next) {
               $project: {
                 _id: 0,
                 tabId: { $toString: "$_id" },
+                closedAt: "$closedAt",
                 paidAt: "$payment.paidAt",
                 status: 1,
                 paymentMethod: "$payment.method",
@@ -160,7 +206,9 @@ export async function getFinanceSummary(req, res, next) {
             },
           ],
 
+          // Optional breakdown if you later add restaurant id
           perRestaurant: [
+            { $match: paidAtRangeMatch },
             {
               $group: {
                 _id: { $ifNull: ["$restaurant", "default"] },
@@ -193,35 +241,25 @@ export async function getFinanceSummary(req, res, next) {
       },
     ]);
 
-    const byStatus = new Map((result?.kpis || []).map((x) => [String(x._id), x]));
-
-    function pack(statusKey) {
-      const row = byStatus.get(statusKey);
+    // ---------- response packing ----------
+    const packRow = (row) => {
       const gross = row?.grossCents ?? 0;
       const subtotal = row?.subtotalCents ?? 0;
       const tips = row?.tipsCents ?? 0;
       const count = row?.count ?? 0;
       const avg = count > 0 ? Math.round(gross / count) : 0;
       return { grossCents: gross, subtotalCents: subtotal, tipsCents: tips, count, avgCents: avg };
-    }
+    };
 
-    const paid = pack("PAID");
-    const closed = pack("CLOSED");
+    const paid = packRow(result?.paidKpis?.[0]);
+    const closed = packRow(result?.closedKpis?.[0]);
 
-    const allCount = paid.count + closed.count;
-    const allGross = paid.grossCents + closed.grossCents;
-    const allSubtotal = paid.subtotalCents + closed.subtotalCents;
-    const allTips = paid.tipsCents + closed.tipsCents;
+    // ✅ "all" is true revenue (paid), not paid+closed (which can double count)
+    const all = { ...paid };
 
     return res.json({
       kpis: {
-        all: {
-          grossCents: allGross,
-          subtotalCents: allSubtotal,
-          tipsCents: allTips,
-          count: allCount,
-          avgCents: allCount > 0 ? Math.round(allGross / allCount) : 0,
-        },
+        all,
         paid,
         closed,
       },

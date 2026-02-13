@@ -11,7 +11,7 @@ import { useRealtime } from "../contexts/RealtimeContext.jsx";
 import { optimisticAddToTab } from "@/utils/tabOptimistic";
 
 import TopBar from "../components/guest/TopBar.jsx";
-import MenuPanel from "../components/guest/MenuPanel.jsx";
+import MenuPanel from "@/components/menu/MenuPanel";
 import TabSummaryCard from "../components/guest/TabSummaryCard.jsx";
 import CartDrawer from "../components/guest/CartDrawer.jsx";
 import OrderStatusPanel from "../components/guest/OrderStatusPanel.jsx";

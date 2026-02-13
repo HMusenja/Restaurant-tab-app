@@ -30,18 +30,18 @@ const tabSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["OPEN", "REQUESTED_TO_PAY", "CLOSED", "CANCELLED","PAID"],
+      enum: ["OPEN", "REQUESTED_TO_PAY", "CLOSED", "CANCELLED", "PAID"],
       default: "OPEN",
       index: true,
     },
     payment: {
-  method: { type: String, enum: ["cash", "card"], default: null },
-  subtotalCents: { type: Number, default: 0 },
-  totalCents: { type: Number, default: 0 },
-  paidAt: { type: Date, default: null },
-  paidBy: { type:Schema.Types.ObjectId, ref: "User", default: null }, // optional
-},
- 
+      method: { type: String, enum: ["cash", "card"], default: null },
+      subtotalCents: { type: Number, default: 0 },
+      totalCents: { type: Number, default: 0 },
+      paidAt: { type: Date, default: null },
+      paidBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    },
+
     items: { type: [tabItemSchema], default: [] },
     tip: {
       type: {
@@ -59,6 +59,7 @@ const tabSchema = new Schema(
 
     // optimistic concurrency helper (we'll use later if needed)
     version: { type: Number, default: 0 },
+    closedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
@@ -66,9 +67,5 @@ const tabSchema = new Schema(
 tabSchema.index({ status: 1, "payment.paidAt": -1 });
 tabSchema.index({ "payment.paidAt": -1 });
 
-
-
 const Tab = model("Tab", tabSchema);
 export default Tab;
-
-

@@ -15,7 +15,7 @@ export default function StaffPaymentPage() {
   const navigate = useNavigate();
 
   const [tab, setTab] = useState(null);
-  const [method, setMethod] = useState("CASH"); // CASH | CARD
+  const [method, setMethod] = useState("cash"); // CASH | CARD
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
