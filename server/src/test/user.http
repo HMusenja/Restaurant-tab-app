@@ -1,0 +1,98 @@
+### ===============================
+
+### ADMIN LOGIN (run this FIRST)
+### ===============================
+POST http://localhost:5000/api/users/register
+Content-Type: application/json
+
+{
+  "name": "Admin four",
+  "email": "admin4@mail.com",
+  "password": "1234",
+  "role": "admin"
+}
+
+
+
+
+### ADMIN LOGIN (run this FIRST)
+### ===============================
+POST http://localhost:5000/api/users/login
+Content-Type: application/json
+
+{
+  "email": "admin4@mail.com",
+  "password": "1234"
+}
+
+### ===============================
+### GET ALL USERS (ADMIN ONLY)
+### ===============================
+GET http://localhost:5000/api/admin/users
+
+
+### ===============================
+### GET SINGLE USER BY ID
+### ===============================
+GET http://localhost:5000/api/admin/users/698526d9ab7cc9923bc0218e
+
+### ===============================
+### CREATE USER (ADMIN ONLY)
+### ===============================
+POST http://localhost:5000/api/users/register
+Content-Type: application/json
+
+{
+  "name": "Kitchen Staff",
+  "email": "bar@mail.com",
+  "password": "1234",
+  "role": "Kitchen"
+}
+
+### ===============================
+### UPDATE USER (EDIT NAME / ROLE)
+### ===============================
+PATCH http://localhost:5000/api/admin/users/6985b5c2cd9340e38cc63254
+Content-Type: application/json
+
+{
+  "name": "Bar Staff",
+  "role": "Bar"
+}
+
+### ===============================
+### DISABLE / ENABLE USER
+### ===============================
+PATCH http://localhost:5000/api/admin/users/6985b5c2cd9340e38cc63254/status
+
+### ===============================
+### RESET USER PASSWORD (ADMIN)
+### ===============================
+PATCH http://localhost:5000/api/admin/users/6985b5c2cd9340e38cc63254/reset-password
+Content-Type: application/json
+
+{
+  "newPassword": "newTemp123"
+}
+
+### ===============================
+### LOGIN AS STAFF (TEST RESET)
+### ===============================
+POST http://localhost:5000/api/users/login
+Content-Type: application/json
+
+{
+  "email": "bar@mail.com",
+  "password": "1234"
+}
+
+### STAFF CHANGE PASSWORD
+PATCH http://localhost:5000/api/users/change-password
+Content-Type: application/json
+Authorization: Bearer {{STAFF_TOKEN}}
+
+{
+  "currentPassword": "1234",
+  "newPassword": "bar1234"
+}
+

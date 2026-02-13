@@ -1,0 +1,30 @@
+### LIST FREE TABLES
+GET http://localhost:5000/api/staff/tables?status=FREE
+
+
+
+### Create Reservation
+POST http://localhost:5000/api/staff/reservations
+Content-Type: application/json
+
+{
+  "tableId": "69764f6c57804c9a37514e94",
+  "name": "John Doe",
+  "phone": "123456789",
+  "partySize": 4,
+  "reservedFor": "2026-02-12T19:00:00.000Z",
+  "notes": "Birthday dinner"
+}
+
+### List All Reservations
+GET http://localhost:5000/api/staff/reservations
+
+
+### Seat Reservation
+POST http://localhost:5000/api/staff/reservations/698d9acdf498593ce42413fe/seat
+Content-Type: application/json
+
+
+### Cancel Reservation
+POST http://localhost:5000/api/staff/reservations/698d9acdf498593ce42413fe/cancel
+Content-Type: application/json

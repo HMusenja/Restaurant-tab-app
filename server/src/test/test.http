@@ -1,0 +1,63 @@
+@baseUrl = http://localhost:5000
+@adminEmail = admin4@mail.com
+@adminPassword = 1234
+@staffEmail = bar@mail.com
+@tempPassword = 1234
+@newPassword =12345
+
+
+
+
+
+### Admin login
+POST {{baseUrl}}/api/users/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "1234"
+}
+
+### ===============================
+### GET ALL USERS (ADMIN ONLY)
+### ===============================
+GET http://localhost:5000/api/admin/users
+
+
+### Admin resets staff password
+PATCH {{baseUrl}}/api/admin/users/6985bae26a3369bdddfb8f6d/reset-password
+Content-Type: application/json
+
+{
+  "newPassword": "{{tempPassword}}"
+}
+
+
+### Staff login with temp password
+POST {{baseUrl}}/api/users/login
+Content-Type: application/json
+
+{
+  "email": "{{staffEmail}}",
+  "password": "{{tempPassword}}"
+}
+
+### Staff changes password
+PATCH {{baseUrl}}/api/users/change-password
+Content-Type: application/json
+
+{
+  "currentPassword": "{{tempPassword}}",
+  "newPassword": "{{newPassword}}"
+}
+
+### Staff login with new password
+POST {{baseUrl}}/api/users/login
+Content-Type: application/json
+
+{
+  "email": "{{staffEmail}}",
+  "password": "{{newPassword}}"
+}
+
+

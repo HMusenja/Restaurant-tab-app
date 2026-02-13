@@ -1,0 +1,131 @@
+### =====================================
+### VARIABLES
+### =====================================
+
+@baseUrl = http://localhost:5000/api
+@tableToken = TABLE-01
+
+# Replace these after first requests
+@tabId =6970e8e285a5dcc448427647
+@menuItemId =6970e7ac18965eb371b6b28a
+
+### =====================================
+### HEALTH CHECK
+### =====================================
+GET {{baseUrl}}/health
+
+### =====================================
+### GET ACTIVE TAB (initially null)
+### =====================================
+GET {{baseUrl}}/tables/{{tableToken}}/active-tab
+
+### =====================================
+### OPEN TAB (or reuse if exists)
+### =====================================
+POST {{baseUrl}}/tabs/open
+Content-Type: application/json
+
+{
+  "tableToken": "{{tableToken}}"
+}
+
+### =====================================
+### COPY tab._id FROM RESPONSE ABOVE
+### Then paste into @tabId variable
+### =====================================
+
+### =====================================
+### GET ACTIVE TAB (should now exist)
+### =====================================
+GET {{baseUrl}}/tables/{{tableToken}}/active-tab
+
+### =====================================
+### MANUALLY COPY A MenuItem _id FROM MONGODB
+### (Compass or mongo shell)
+### Then paste into @menuItemId variable
+### =====================================
+
+### =====================================
+### ADD ITEM TO TAB
+### =====================================
+PATCH {{baseUrl}}/tabs/{{tabId}}/items
+Content-Type: application/json
+
+{
+  "action": "ADD",
+  "menuItemId": "{{menuItemId}}",
+  "qty": 2
+}
+
+### =====================================
+### UPDATE ITEM QUANTITY
+### =====================================
+PATCH {{baseUrl}}/tabs/{{tabId}}/items
+Content-Type: application/json
+
+{
+  "action": "UPDATE",
+  "menuItemId": "{{menuItemId}}",
+  "qty": 3
+}
+
+### =====================================
+### REMOVE ITEM
+### =====================================
+PATCH {{baseUrl}}/tabs/{{tabId}}/items
+Content-Type: application/json
+
+{
+  "action": "REMOVE",
+  "menuItemId": "{{menuItemId}}"
+}
+
+### =====================================
+### ADD ITEM AGAIN (for tip tests)
+### =====================================
+PATCH {{baseUrl}}/tabs/{{tabId}}/items
+Content-Type: application/json
+
+{
+  "action": "ADD",
+  "menuItemId": "{{menuItemId}}",
+  "qty": 1
+}
+
+### =====================================
+### SET TIP (10%)
+### =====================================
+PATCH {{baseUrl}}/tabs/{{tabId}}/tip
+Content-Type: application/json
+
+{
+  "type": "PERCENT",
+  "value": 10
+}
+
+### =====================================
+### SET TIP (FIXED AMOUNT: 2€)
+### value is in CENTS
+### =====================================
+PATCH {{baseUrl}}/tabs/{{tabId}}/tip
+Content-Type: application/json
+
+{
+  "type": "AMOUNT",
+  "value": 200
+}
+
+### =====================================
+### GET ACTIVE TAB (final state)
+### =====================================
+GET {{baseUrl}}/tables/{{tableToken}}/active-tab
+
+
+### GET MENU
+GET http://localhost:5000/api/menu
+
+### SEND TAB TO SERVICE (CREATE TICKET)
+POST http://localhost:5000/api/tabs/{{tabId}}/tickets
+
+### GET ALL TICKETS (STAFF)
+GET http://localhost:5000/api/staff/tickets

@@ -1,0 +1,34 @@
+@baseUrl = http://localhost:5000/api
+@tableId = 69735e2e8f60d3e134aba02c
+@tabId = 69736e495d767bff1c012096
+
+### LIST FREE TABLES
+GET {{baseUrl}}/staff/tables?status=FREE
+
+### LIST OCCUPIED TABLES
+GET {{baseUrl}}/staff/tables?status=OCCUPIED
+
+### ASSIGN TABLE (copy a table id from above)
+POST {{baseUrl}}/staff/tables/{{tableId}}/assign
+Content-Type: application/json
+
+{}
+
+### JOIN (copy invite JWT from joinUrl query)
+POST {{baseUrl}}/join
+Content-Type: application/json
+
+{
+    "invite": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwdXJwb3NlIjoiVEFCTEVfSU5WSVRFIiwidGFibGVJZCI6IjY5NzM1ZTJlOGY2MGQzZTEzNGFiYTAyOCIsImlhdCI6MTc2OTE3MDA2OSwiZXhwIjoxNzY5MTcwNjY5fQ.KOE_ClW2w_Gs1BSt70gO4vAmZnr7sPYzFQ1DJxOd_JU"
+}
+
+### JOIN WITH CODE
+POST http://localhost:5000/api/join/code
+Content-Type: application/json
+
+{
+  "code": "688941"
+}
+
+### CLOSE TAB
+POST http://localhost:5000/api/staff/tabs/{{tabId}}/close
