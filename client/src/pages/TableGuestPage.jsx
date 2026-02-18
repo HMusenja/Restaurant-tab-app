@@ -16,8 +16,9 @@ import TabSummaryCard from "../components/guest/TabSummaryCard.jsx";
 import CartDrawer from "../components/guest/CartDrawer.jsx";
 import OrderStatusPanel from "../components/guest/OrderStatusPanel.jsx";
 import RequestServiceModal from "../components/guest/RequestServiceModal.jsx";
+
 import { fetchServiceRequests } from "@/api/servicesApi";
-import ServiceCard from "@/components/service/ServiceCard";
+import RequestCard from "../components/guest/RequestCard.jsx";
 
 export default function TableGuestPage() {
   const { token } = useParams();
@@ -130,7 +131,7 @@ export default function TableGuestPage() {
     });
 
     return () => rt.unregisterGuest(id);
-  }, [rt, table?.id, silentReload, loadTickets]);
+  }, [rt, table?.id, silentReload, loadTickets, loadRequests]);
 
   async function handleAdd(menuItemId, qty = 1) {
     setError("");
@@ -186,15 +187,15 @@ export default function TableGuestPage() {
 
   if (isClosedSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-md text-center space-y-3">
+      <div className="h-screen flex items-center justify-center bg-gradient-to-b from-background via-secondary/40 to-background p-6">
+        <div className="max-w-md text-center space-y-4 rounded-2xl bg-card shadow-soft border border-border p-6">
           <div className="text-2xl font-semibold">Thanks for visiting! 🙌</div>
-          <div className="text-sm opacity-70">
+          <div className="text-sm text-muted-foreground">
             Your table has been closed. You’ll be redirected shortly.
           </div>
 
           <button
-            className="mt-4 underline text-sm"
+            className="mt-2 text-sm font-medium text-primary hover:underline"
             onClick={() => navigate("/join", { replace: true })}
           >
             Go now
@@ -205,65 +206,49 @@ export default function TableGuestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen flex flex-col bg-gradient-to-b from-background via-secondary/40 to-background overflow-hidden">
       <TopBar
         tableNumber={table?.number}
         itemCount={itemCount}
         onOpenCart={() => setCartOpen(true)}
       />
 
-      <div className="mx-auto max-w-4xl w-full px-4 pt-4">
-        <OrderStatusPanel tickets={tickets} />
-        {error ? <div className="pt-3 text-red-600">{error}</div> : null}
-      </div>
-      <div className="mx-auto max-w-4xl w-full px-4 pt-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="font-semibold">Requests</div>
-          <button
-            className="text-sm underline opacity-70"
-            onClick={loadRequests}
-            type="button"
-          >
-            Refresh
-          </button>
+      {/* Static upper section */}
+      <div className="mx-auto w-full max-w-4xl px-4 pt-4 space-y-6">
+        <div className="animate-[fadeIn_.2s_ease-out]">
+          <OrderStatusPanel tickets={tickets} />
         </div>
 
-        {reqLoading ? (
-          <div className="text-sm text-muted-foreground">Loading…</div>
-        ) : requests.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            No active requests.
+        {error ? (
+          <div className="rounded-xl bg-destructive/10 text-destructive p-3 text-sm border border-destructive/20">
+            {error}
           </div>
-        ) : (
-          <div className="space-y-2">
-            {requests.map((r) => (
-              <ServiceCard
-                key={r.id}
-                request={r}
-                variant="guest"
-                showTable={false}
-              />
-            ))}
+        ) : null}
+
+        <div className="animate-[fadeIn_.25s_ease-out]">
+          <RequestCard
+            requests={requests}
+            loading={reqLoading}
+            onRefresh={loadRequests}
+            autoOpenOnNew
+          />
+        </div>
+      </div>
+
+      {/* Scrollable menu section */}
+      <div className="flex-1 overflow-hidden">
+        <div className="mx-auto h-full w-full max-w-4xl px-4">
+          <div className="animate-[fadeIn_.3s_ease-out] h-full">
+            <MenuPanel menu={menu} onAdd={handleAdd} />
           </div>
-        )}
+        </div>
       </div>
 
-      <div className="mx-auto w-full max-w-4xl px-4 pt-4">
-        <MenuPanel menu={menu} onAdd={handleAdd} />
-      </div>
-
-      <div className="mx-auto w-full max-w-4xl px-4 py-4">
-        <TabSummaryCard
-          tab={tab}
-          onViewCart={() => setCartOpen(true)}
-          onRequestBill={() => setServiceModalOpen(true)}
-        />
-      </div>
-
+      {/* Floating service button */}
       <button
         type="button"
         onClick={() => setServiceModalOpen(true)}
-        className="fixed bottom-28 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-black text-white shadow-lg active:scale-[0.98]"
+        className="fixed bottom-14 right-4 z-40 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-elevated ring-1 ring-white/30 hover:brightness-110 active:scale-[0.98]"
         aria-label="Request service"
       >
         <Bell className="h-6 w-6" />
@@ -275,6 +260,12 @@ export default function TableGuestPage() {
         tab={tab}
         setTab={setTab}
         setError={setError}
+      />
+
+      <TabSummaryCard
+        tab={tab}
+        onViewCart={() => setCartOpen(true)}
+        onRequestBill={() => setServiceModalOpen(true)}
       />
 
       <RequestServiceModal

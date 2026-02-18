@@ -19,30 +19,30 @@ function formatTime(iso) {
 const statusConfig = {
   NEW: {
     icon: Clock,
-    bgColor: "bg-black/5",
-    textColor: "text-black",
-    borderColor: "border-black/10",
+    bgColor: "bg-primary/10",
+    textColor: "text-primary",
+    borderColor: "border-primary/20",
     label: "Sent",
   },
   PREPARING: {
     icon: ChefHat,
-    bgColor: "bg-yellow-500/10",
-    textColor: "text-yellow-700",
-    borderColor: "border-yellow-500/20",
+    bgColor: "bg-warning/15",
+    textColor: "text-warning",
+    borderColor: "border-warning/20",
     label: "Preparing",
   },
   READY: {
     icon: Bell,
-    bgColor: "bg-emerald-500/10",
-    textColor: "text-emerald-700",
-    borderColor: "border-emerald-500/20",
+    bgColor: "bg-success/15",
+    textColor: "text-success",
+    borderColor: "border-success/20",
     label: "Ready",
   },
   DONE: {
     icon: CheckCircle2,
-    bgColor: "bg-emerald-500/10",
-    textColor: "text-emerald-700",
-    borderColor: "border-emerald-500/20",
+    bgColor: "bg-success/10",
+    textColor: "text-success",
+    borderColor: "border-success/15",
     label: "Delivered",
   },
 };
@@ -51,7 +51,10 @@ function getConfig(status) {
   return statusConfig[status] || statusConfig.NEW;
 }
 
-export default function OrderStatusPanel({ tickets, hideDoneAfterMinutes = 10 }) {
+export default function OrderStatusPanel({
+  tickets,
+  hideDoneAfterMinutes = 10,
+}) {
   const [showCompleted, setShowCompleted] = useState(false);
 
   const now = Date.now();
@@ -130,7 +133,9 @@ export default function OrderStatusPanel({ tickets, hideDoneAfterMinutes = 10 })
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className={["font-semibold", cfg.textColor].join(" ")}>
+                        <p
+                          className={["font-semibold", cfg.textColor].join(" ")}
+                        >
                           {cfg.label}
                         </p>
                         <p className="text-sm text-gray-500">

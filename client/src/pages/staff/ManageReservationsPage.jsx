@@ -1,5 +1,8 @@
 // src/pages/staff/ManageReservationsPage.jsx
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
 import {
   ArrowLeft,
   Plus,
@@ -36,8 +39,23 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
+import { useRealtime } from "@/contexts/RealtimeContext";
+import { socket } from "@/realtime/socket";
+
 import {
-  useReservationsManager,
+  useReservationsContext,
+  RES_TYPES,
+} from "@/contexts/reservations/ReservationsContext";
+import {
+  loadTables,
+  loadReservationsByScope,
+  createReservationAction,
+  updateReservationAction,
+  seatReservationAction,
+  cancelReservationAction,
+} from "@/contexts/reservations/reservations.actions";
+
+import {
   SCOPE_OPTIONS,
   ymdLocal,
   addDaysYMD,
@@ -46,6 +64,7 @@ import {
   formatTime,
   timeSignal,
   buildISOFromLocalDateTime,
+  matchesSearch,
 } from "@/hooks/useReservationsManager";
 
 /* ------------------------------------------------------------------ */
@@ -124,7 +143,9 @@ function StatsStrip({ stats }) {
       </div>
       <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2">
         <div className="text-xs text-muted-foreground">Cancelled</div>
-        <div className="text-lg font-semibold text-destructive">{stats.CANCELLED}</div>
+        <div className="text-lg font-semibold text-destructive">
+          {stats.CANCELLED}
+        </div>
       </div>
       <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
         <div className="text-xs text-muted-foreground">No-show</div>
@@ -159,7 +180,11 @@ function StickyControls({
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               disabled={scope !== "day"}
-              title={scope !== "day" ? "Scope is a range — switch to Day to pick a date" : undefined}
+              title={
+                scope !== "day"
+                  ? "Scope is a range — switch to Day to pick a date"
+                  : undefined
+              }
             />
 
             <Select value={scope} onValueChange={setScope}>
@@ -178,7 +203,11 @@ function StickyControls({
             <div className="flex gap-2">
               <Button
                 size="sm"
-                variant={selectedDate === ymdLocal() && scope === "day" ? "default" : "secondary"}
+                variant={
+                  selectedDate === ymdLocal() && scope === "day"
+                    ? "default"
+                    : "secondary"
+                }
                 onClick={() => {
                   setScope("day");
                   setSelectedDate(ymdLocal());
@@ -202,11 +231,19 @@ function StickyControls({
                 Tomorrow
               </Button>
 
-              <Button size="sm" variant={scope === "next7" ? "default" : "secondary"} onClick={() => setScope("next7")}>
+              <Button
+                size="sm"
+                variant={scope === "next7" ? "default" : "secondary"}
+                onClick={() => setScope("next7")}
+              >
                 Next 7
               </Button>
 
-              <Button size="sm" variant={scope === "next30" ? "default" : "secondary"} onClick={() => setScope("next30")}>
+              <Button
+                size="sm"
+                variant={scope === "next30" ? "default" : "secondary"}
+                onClick={() => setScope("next30")}
+              >
                 Next 30
               </Button>
             </div>
@@ -259,7 +296,9 @@ function ReservationsList({
           <span>{headerLabel}</span>
 
           <Button size="sm" variant="ghost" onClick={onRefresh}>
-            <RefreshCw className={cn("w-4 h-4 mr-1", refreshing && "animate-spin")} />
+            <RefreshCw
+              className={cn("w-4 h-4 mr-1", refreshing && "animate-spin")}
+            />
             Refresh
           </Button>
         </CardTitle>
@@ -267,9 +306,13 @@ function ReservationsList({
 
       <CardContent className="space-y-2">
         {loading ? (
-          <div className="py-10 text-sm text-muted-foreground">Loading reservations…</div>
+          <div className="py-10 text-sm text-muted-foreground">
+            Loading reservations…
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="py-10 text-sm text-muted-foreground">No reservations match your filters.</div>
+          <div className="py-10 text-sm text-muted-foreground">
+            No reservations match your filters.
+          </div>
         ) : (
           filtered.map(renderRow)
         )}
@@ -308,7 +351,9 @@ function ReservationRow({
       className={cn(
         "w-full rounded-xl border px-3 py-3 transition outline-none",
         "cursor-pointer select-none",
-        selectedRow ? "border-primary/50 bg-primary/5" : "border-border/60 hover:bg-muted/40",
+        selectedRow
+          ? "border-primary/50 bg-primary/5"
+          : "border-border/60 hover:bg-muted/40",
         "focus-visible:ring-2 focus-visible:ring-primary/40",
       )}
     >
@@ -321,18 +366,24 @@ function ReservationRow({
               </Badge>
             ) : null}
 
-            <div className="text-base font-semibold tabular-nums">{formatTime(r.reservedFor)}</div>
+            <div className="text-base font-semibold tabular-nums">
+              {formatTime(r.reservedFor)}
+            </div>
 
             <Badge className={cn("capitalize", statusBadgeClass(r.status))}>
               {r.status.toLowerCase().replace("_", " ")}
             </Badge>
 
             <Badge variant="secondary" className="text-xs">
-              {r.tableNumber != null ? `Table ${pad2(r.tableNumber)}` : "Table —"}
+              {r.tableNumber != null
+                ? `Table ${pad2(r.tableNumber)}`
+                : "Table —"}
             </Badge>
 
             {tSig.kind !== "none" ? (
-              <Badge className={cn("text-xs", timePillClass(tSig.kind))}>{tSig.label}</Badge>
+              <Badge className={cn("text-xs", timePillClass(tSig.kind))}>
+                {tSig.label}
+              </Badge>
             ) : null}
           </div>
 
@@ -379,7 +430,13 @@ function ReservationRow({
               onSeat();
             }}
             disabled={!canSeat}
-            title={!canSeat ? (occupied ? "Table occupied" : "Only BOOKED can be seated") : "Seat"}
+            title={
+              !canSeat
+                ? occupied
+                  ? "Table occupied"
+                  : "Only BOOKED can be seated"
+                : "Seat"
+            }
           >
             <CheckCircle2 className="w-4 h-4 mr-1" />
             Seat
@@ -431,7 +488,11 @@ function DetailPanel({
   onAskCancel,
 }) {
   if (!selected || !editForm) {
-    return <div className="text-sm text-muted-foreground p-4">Select a reservation to view details.</div>;
+    return (
+      <div className="text-sm text-muted-foreground p-4">
+        Select a reservation to view details.
+      </div>
+    );
   }
 
   const occupied = selected.tableId && occupiedTableIds.has(selected.tableId);
@@ -443,7 +504,9 @@ function DetailPanel({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="text-lg font-semibold">{editForm.name || "Reservation"}</div>
+              <div className="text-lg font-semibold">
+                {editForm.name || "Reservation"}
+              </div>
               <Badge className={cn("capitalize", statusBadgeClass(selected.status))}>
                 {selected.status.toLowerCase().replace("_", " ")}
               </Badge>
@@ -481,7 +544,9 @@ function DetailPanel({
               {tSig.kind !== "none" ? (
                 <>
                   <span className="text-muted-foreground">•</span>
-                  <Badge className={cn("text-xs", timePillClass(tSig.kind))}>{tSig.label}</Badge>
+                  <Badge className={cn("text-xs", timePillClass(tSig.kind))}>
+                    {tSig.label}
+                  </Badge>
                 </>
               ) : null}
             </div>
@@ -767,13 +832,7 @@ function CreateDialog({
   );
 }
 
-function CancelConfirmDialog({
-  open,
-  onOpenChange,
-  busy,
-  selected,
-  onConfirm,
-}) {
+function CancelConfirmDialog({ open, onOpenChange, busy, selected, onConfirm }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -815,37 +874,391 @@ function CancelConfirmDialog({
 /* Page */
 /* ------------------------------------------------------------------ */
 
+const STATUS_FILTERS = ["ALL", "BOOKED", "SEATED", "CANCELLED", "NO_SHOW"];
+
 export default function ManageReservationsPage() {
-  const mgr = useReservationsManager();
+  const navigate = useNavigate();
+  const realtime = useRealtime();
+  const { state, dispatch } = useReservationsContext();
+
+  // mobile UI only
+  const [isMobile, setIsMobile] = useState(false);
+  const [openMobileDetail, setOpenMobileDetail] = useState(false);
+
+  // selection sticky
+  const lastSelectedRef = useRef(null);
+  useEffect(() => {
+    lastSelectedRef.current = state.selectedId;
+  }, [state.selectedId]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setIsMobile(!!mq.matches);
+    apply();
+    mq.addEventListener?.("change", apply);
+    return () => mq.removeEventListener?.("change", apply);
+  }, []);
+
+  const occupiedTableIds = useMemo(() => new Set(state.occupiedTableIds || []), [state.occupiedTableIds]);
+
+  // setters
+  const setSelectedDate = useCallback(
+    (v) => dispatch({ type: RES_TYPES.SET_CONTROLS, payload: { selectedDate: v } }),
+    [dispatch],
+  );
+  const setScope = useCallback(
+    (v) => dispatch({ type: RES_TYPES.SET_CONTROLS, payload: { scope: v } }),
+    [dispatch],
+  );
+  const setStatusFilter = useCallback(
+    (v) => dispatch({ type: RES_TYPES.SET_CONTROLS, payload: { statusFilter: v } }),
+    [dispatch],
+  );
+  const setSearch = useCallback(
+    (v) => dispatch({ type: RES_TYPES.SET_CONTROLS, payload: { search: v } }),
+    [dispatch],
+  );
+
+  const setSelectedId = useCallback(
+    (v) => dispatch({ type: RES_TYPES.SET_SELECTED_ID, payload: v }),
+    [dispatch],
+  );
+
+  const setOpenCreate = useCallback(
+    (v) => dispatch({ type: RES_TYPES.SET_DIALOGS, payload: { openCreate: !!v } }),
+    [dispatch],
+  );
+  const setOpenCancelConfirm = useCallback(
+    (v) => dispatch({ type: RES_TYPES.SET_DIALOGS, payload: { openCancelConfirm: !!v } }),
+    [dispatch],
+  );
+
+  // local forms
+  const [editForm, setEditForm] = useState(null);
+  const [createForm, setCreateForm] = useState({
+    tableId: "",
+    name: "",
+    phone: "",
+    partySize: "2",
+    date: state.selectedDate,
+    time: roundToNext15Min(),
+    notes: "",
+  });
+
+  // keep createForm.date in sync
+  useEffect(() => {
+    setCreateForm((p) => ({ ...p, date: state.selectedDate }));
+  }, [state.selectedDate]);
+
+  const statusChips = useMemo(() => {
+    return STATUS_FILTERS.map((s) => ({
+      key: s,
+      label: s === "ALL" ? "All" : s[0] + s.slice(1).toLowerCase().replace("_", "-"),
+    }));
+  }, []);
+
+  const filtered = useMemo(() => {
+    return (state.reservations || []).filter((r) => {
+      if (state.statusFilter !== "ALL" && r.status !== state.statusFilter) return false;
+      if (!matchesSearch(r, state.search)) return false;
+      return true;
+    });
+  }, [state.reservations, state.statusFilter, state.search]);
+
+  const stats = useMemo(() => {
+    const base = { BOOKED: 0, SEATED: 0, CANCELLED: 0, NO_SHOW: 0 };
+    for (const r of state.reservations || []) {
+      if (base[r.status] != null) base[r.status] += 1;
+    }
+    return base;
+  }, [state.reservations]);
+
+  const selected = useMemo(() => {
+    return (
+      filtered.find((r) => r.id === state.selectedId) ||
+      (state.reservations || []).find((r) => r.id === state.selectedId) ||
+      null
+    );
+  }, [filtered, state.reservations, state.selectedId]);
+
+  // derive edit form from selected
+  useEffect(() => {
+    if (!selected) {
+      setEditForm(null);
+      return;
+    }
+    const d = new Date(selected.reservedFor);
+    setEditForm({
+      id: selected.id,
+      tableId: selected.tableId || "",
+      name: selected.name || "",
+      phone: selected.phone || "",
+      partySize: String(selected.partySize || "2"),
+      date: ymdLocal(d),
+      time: `${pad2(d.getHours())}:${pad2(d.getMinutes())}`,
+      notes: selected.notes || "",
+      status: selected.status,
+    });
+  }, [selected]);
+
+  const isDirty = useMemo(() => {
+    if (!selected || !editForm) return false;
+    const selectedDT = new Date(selected.reservedFor);
+    const selectedDateStr = ymdLocal(selectedDT);
+    const selectedTimeStr = `${pad2(selectedDT.getHours())}:${pad2(selectedDT.getMinutes())}`;
+
+    return (
+      editForm.tableId !== (selected.tableId || "") ||
+      editForm.name !== (selected.name || "") ||
+      editForm.phone !== (selected.phone || "") ||
+      String(editForm.partySize) !== String(selected.partySize || "") ||
+      editForm.date !== selectedDateStr ||
+      editForm.time !== selectedTimeStr ||
+      editForm.notes !== (selected.notes || "")
+    );
+  }, [selected, editForm]);
+
+  // loaders
+  const refreshAll = useCallback(async () => {
+    await Promise.all([
+      loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate }),
+      loadTables(dispatch),
+    ]);
+  }, [dispatch, state.scope, state.selectedDate]);
+
+  // initial
+  useEffect(() => {
+    loadTables(dispatch).catch(() => {});
+  }, [dispatch]);
+
+  // reload when selectedDate/scope changes
+  useEffect(() => {
+    loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate })
+      .then(() => {
+        // selection rules
+        const list = state.reservations || [];
+        if (lastSelectedRef.current) {
+          const stillThere = list.some((r) => r.id === lastSelectedRef.current);
+          if (stillThere) {
+            setSelectedId(lastSelectedRef.current);
+            return;
+          }
+        }
+        if (!isMobile && list.length > 0) setSelectedId(list[0].id);
+        else setSelectedId(null);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.selectedDate, state.scope, dispatch, isMobile]);
+
+  // realtime
+  useEffect(() => {
+    const id = realtime.registerStaff({
+      reloadTables: null,
+      reloadTickets: null,
+      reloadServices: null,
+    });
+
+    const onRes = () =>
+      loadReservationsByScope(dispatch, {
+        scope: state.scope,
+        selectedDate: state.selectedDate,
+      }).catch(() => {});
+    const onTables = () => loadTables(dispatch).catch(() => {});
+
+    socket.on("reservations:updated", onRes);
+    socket.on("tables:updated", onTables);
+
+    return () => {
+      socket.off("reservations:updated", onRes);
+      socket.off("tables:updated", onTables);
+      realtime.unregisterStaff(id);
+    };
+  }, [realtime, dispatch, state.scope, state.selectedDate]);
+
+  // actions
+  const handleSelectRow = useCallback(
+    (id) => {
+      setSelectedId(id);
+      if (isMobile) setOpenMobileDetail(true);
+    },
+    [isMobile, setSelectedId],
+  );
+
+  const openCreateDialog = useCallback(() => {
+    const firstTableId = state.tables?.[0]?.id || "";
+    setCreateForm({
+      tableId: firstTableId,
+      name: "",
+      phone: "",
+      partySize: "2",
+      date: state.selectedDate,
+      time: roundToNext15Min(),
+      notes: "",
+    });
+    setOpenCreate(true);
+  }, [state.tables, state.selectedDate, setOpenCreate]);
+
+  const handleCreate = useCallback(async () => {
+    const party = Number(createForm.partySize);
+
+    if (
+      !createForm.tableId ||
+      !createForm.name.trim() ||
+      !createForm.phone.trim() ||
+      !party ||
+      !createForm.date ||
+      !createForm.time
+    ) {
+      toast.error("Fill table, name, phone, party size, date and time");
+      return;
+    }
+
+    try {
+      await createReservationAction(dispatch, {
+        tableId: createForm.tableId,
+        name: createForm.name.trim(),
+        phone: createForm.phone.trim(),
+        partySize: party,
+        reservedFor: buildISOFromLocalDateTime(createForm.date, createForm.time),
+        notes: createForm.notes?.trim() || "",
+      });
+
+      toast.success("Reservation created");
+      setOpenCreate(false);
+
+      await loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate });
+    } catch (e) {
+      toast.error(e?.message || "Failed to create reservation");
+    }
+  }, [dispatch, createForm, state.scope, state.selectedDate, setOpenCreate]);
+
+  const handleSave = useCallback(async () => {
+    if (!selected || !editForm) return;
+
+    if (selected.status !== "BOOKED") {
+      toast.error("Only BOOKED reservations can be edited");
+      return;
+    }
+
+    const party = Number(editForm.partySize);
+    if (
+      !editForm.tableId ||
+      !editForm.name.trim() ||
+      !editForm.phone.trim() ||
+      !party ||
+      !editForm.date ||
+      !editForm.time
+    ) {
+      toast.error("Fill table, name, phone, party size, date and time");
+      return;
+    }
+
+    try {
+      await updateReservationAction(dispatch, editForm.id, {
+        tableId: editForm.tableId,
+        name: editForm.name.trim(),
+        phone: editForm.phone.trim(),
+        partySize: party,
+        reservedFor: buildISOFromLocalDateTime(editForm.date, editForm.time),
+        notes: editForm.notes ?? "",
+      });
+
+      toast.success("Reservation updated");
+      await loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate });
+    } catch (e) {
+      toast.error(e?.message || "Failed to update reservation");
+    }
+  }, [dispatch, selected, editForm, state.scope, state.selectedDate]);
+
+  const handleSeatById = useCallback(
+    async (reservationId) => {
+      const r =
+        (state.reservations || []).find((x) => x.id === reservationId) ||
+        filtered.find((x) => x.id === reservationId);
+
+      if (!r) return;
+      if (r.status !== "BOOKED") return;
+
+      if (r.tableId && occupiedTableIds.has(r.tableId)) {
+        toast.error("Table is currently occupied. Free it before seating this reservation.");
+        return;
+      }
+
+      try {
+        await seatReservationAction(dispatch, r.id);
+
+        toast("Reservation seated", {
+          description: r.tableNumber != null ? `Table ${pad2(r.tableNumber)}` : "Table",
+          action: {
+            label: "View table",
+            onClick: () => navigate(`/staff/tables/${r.tableId}`),
+          },
+        });
+
+        await Promise.all([
+          loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate }),
+          loadTables(dispatch),
+        ]);
+      } catch (e) {
+        toast.error(e?.message || "Failed to seat reservation");
+      }
+    },
+    [dispatch, state.reservations, filtered, occupiedTableIds, navigate, state.scope, state.selectedDate],
+  );
+
+  const askCancel = useCallback(() => {
+    if (!selected) return;
+    setOpenCancelConfirm(true);
+  }, [selected, setOpenCancelConfirm]);
+
+  const confirmCancel = useCallback(async () => {
+    if (!selected) return;
+
+    if (selected.status !== "BOOKED") {
+      toast.error("Only BOOKED reservations can be cancelled");
+      setOpenCancelConfirm(false);
+      return;
+    }
+
+    try {
+      await cancelReservationAction(dispatch, selected.id);
+      toast.success("Reservation cancelled");
+      setOpenCancelConfirm(false);
+      await loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate });
+    } catch (e) {
+      toast.error(e?.message || "Failed to cancel reservation");
+    }
+  }, [dispatch, selected, state.scope, state.selectedDate, setOpenCancelConfirm]);
 
   const headerLabel = useMemo(() => {
     const scopeLabel =
-      mgr.scope === "day"
-        ? mgr.selectedDate
-        : mgr.scope === "next7"
-          ? `From ${mgr.selectedDate} • next 7 days`
-          : `From ${mgr.selectedDate} • next 30 days`;
+      state.scope === "day"
+        ? state.selectedDate
+        : state.scope === "next7"
+          ? `From ${state.selectedDate} • next 7 days`
+          : `From ${state.selectedDate} • next 30 days`;
 
-    const count = mgr.loading ? "Loading…" : `${mgr.filtered.length} reservations`;
+    const count = state.loading ? "Loading…" : `${filtered.length} reservations`;
     return `${count} • ${scopeLabel}`;
-  }, [mgr.loading, mgr.filtered.length, mgr.scope, mgr.selectedDate]);
+  }, [state.loading, filtered.length, state.scope, state.selectedDate]);
 
   const renderRow = (r) => (
     <ReservationRow
       key={r.id}
       r={r}
-      selected={r.id === mgr.selectedId}
-      scope={mgr.scope}
-      occupiedTableIds={mgr.occupiedTableIds}
-      onSelect={() => mgr.handleSelectRow(r.id)}
-      onSeat={() => mgr.handleSeatById(r.id)}
+      selected={r.id === state.selectedId}
+      scope={state.scope}
+      occupiedTableIds={occupiedTableIds}
+      onSelect={() => handleSelectRow(r.id)}
+      onSeat={() => handleSeatById(r.id)}
       onEdit={() => {
-        mgr.setSelectedId(r.id);
-        if (mgr.isMobile) mgr.setOpenMobileDetail(true);
+        setSelectedId(r.id);
+        if (isMobile) setOpenMobileDetail(true);
       }}
       onCancel={() => {
-        mgr.setSelectedId(r.id);
-        mgr.setOpenCancelConfirm(true);
+        setSelectedId(r.id);
+        setOpenCancelConfirm(true);
       }}
     />
   );
@@ -853,34 +1266,34 @@ export default function ManageReservationsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        onBack={() => mgr.navigate("/staff/tables")}
-        onRefresh={mgr.refreshAll}
-        refreshing={mgr.loading || mgr.loadingTables}
-        onCreate={mgr.openCreateDialog}
+        onBack={() => navigate("/staff/tables")}
+        onRefresh={refreshAll}
+        refreshing={state.loading || state.loadingTables}
+        onCreate={openCreateDialog}
       />
 
-      <ErrorBanner error={mgr.error} />
+      <ErrorBanner error={state.error} />
 
       <StickyControls
-        selectedDate={mgr.selectedDate}
-        setSelectedDate={mgr.setSelectedDate}
-        scope={mgr.scope}
-        setScope={mgr.setScope}
-        search={mgr.search}
-        setSearch={mgr.setSearch}
-        statusFilter={mgr.statusFilter}
-        setStatusFilter={mgr.setStatusFilter}
-        statusChips={mgr.statusChips}
-        stats={mgr.stats}
+        selectedDate={state.selectedDate}
+        setSelectedDate={setSelectedDate}
+        scope={state.scope}
+        setScope={setScope}
+        search={state.search}
+        setSearch={setSearch}
+        statusFilter={state.statusFilter}
+        setStatusFilter={setStatusFilter}
+        statusChips={statusChips}
+        stats={stats}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_420px] gap-4">
         <ReservationsList
-          loading={mgr.loading}
-          filtered={mgr.filtered}
+          loading={state.loading}
+          filtered={filtered}
           headerLabel={headerLabel}
-          onRefresh={() => mgr.loadReservations({ keepSelection: true })}
-          refreshing={mgr.loading}
+          onRefresh={refreshAll}
+          refreshing={state.loading}
           renderRow={renderRow}
         />
 
@@ -890,25 +1303,25 @@ export default function ManageReservationsPage() {
           </CardHeader>
           <CardContent className="p-0">
             <DetailPanel
-              selected={mgr.selected}
-              editForm={mgr.editForm}
-              setEditForm={mgr.setEditForm}
-              tables={mgr.tables}
-              occupiedTableIds={mgr.occupiedTableIds}
-              loadingTables={mgr.loadingTables}
-              scope={mgr.scope}
-              isDirty={mgr.isDirty}
-              busySave={mgr.busySave}
-              onSave={mgr.handleSave}
-              onSeat={() => (mgr.selected ? mgr.handleSeatById(mgr.selected.id) : null)}
-              onAskCancel={mgr.askCancel}
+              selected={selected}
+              editForm={editForm}
+              setEditForm={setEditForm}
+              tables={state.tables}
+              occupiedTableIds={occupiedTableIds}
+              loadingTables={state.loadingTables}
+              scope={state.scope}
+              isDirty={isDirty}
+              busySave={state.busySave}
+              onSave={handleSave}
+              onSeat={() => (selected ? handleSeatById(selected.id) : null)}
+              onAskCancel={askCancel}
             />
           </CardContent>
         </Card>
       </div>
 
-      {/* Mobile details drawer */}
-      <Dialog open={mgr.openMobileDetail} onOpenChange={mgr.setOpenMobileDetail}>
+      {/* Mobile details */}
+      <Dialog open={openMobileDetail} onOpenChange={setOpenMobileDetail}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Reservation</DialogTitle>
@@ -917,18 +1330,18 @@ export default function ManageReservationsPage() {
 
           <div className="-mx-6">
             <DetailPanel
-              selected={mgr.selected}
-              editForm={mgr.editForm}
-              setEditForm={mgr.setEditForm}
-              tables={mgr.tables}
-              occupiedTableIds={mgr.occupiedTableIds}
-              loadingTables={mgr.loadingTables}
-              scope={mgr.scope}
-              isDirty={mgr.isDirty}
-              busySave={mgr.busySave}
-              onSave={mgr.handleSave}
-              onSeat={() => (mgr.selected ? mgr.handleSeatById(mgr.selected.id) : null)}
-              onAskCancel={mgr.askCancel}
+              selected={selected}
+              editForm={editForm}
+              setEditForm={setEditForm}
+              tables={state.tables}
+              occupiedTableIds={occupiedTableIds}
+              loadingTables={state.loadingTables}
+              scope={state.scope}
+              isDirty={isDirty}
+              busySave={state.busySave}
+              onSave={handleSave}
+              onSeat={() => (selected ? handleSeatById(selected.id) : null)}
+              onAskCancel={askCancel}
             />
           </div>
         </DialogContent>
@@ -936,24 +1349,24 @@ export default function ManageReservationsPage() {
 
       {/* Create dialog */}
       <CreateDialog
-        open={mgr.openCreate}
-        onOpenChange={mgr.setOpenCreate}
-        busy={mgr.busyCreate}
-        tables={mgr.tables}
-        occupiedTableIds={mgr.occupiedTableIds}
-        loadingTables={mgr.loadingTables}
-        createForm={mgr.createForm}
-        setCreateForm={mgr.setCreateForm}
-        onCreate={mgr.handleCreate}
+        open={state.openCreate}
+        onOpenChange={setOpenCreate}
+        busy={state.busyCreate}
+        tables={state.tables}
+        occupiedTableIds={occupiedTableIds}
+        loadingTables={state.loadingTables}
+        createForm={createForm}
+        setCreateForm={setCreateForm}
+        onCreate={handleCreate}
       />
 
       {/* Cancel confirm */}
       <CancelConfirmDialog
-        open={mgr.openCancelConfirm}
-        onOpenChange={mgr.setOpenCancelConfirm}
-        busy={mgr.busyCancel}
-        selected={mgr.selected}
-        onConfirm={mgr.confirmCancel}
+        open={state.openCancelConfirm}
+        onOpenChange={setOpenCancelConfirm}
+        busy={state.busyCancel}
+        selected={selected}
+        onConfirm={confirmCancel}
       />
     </div>
   );

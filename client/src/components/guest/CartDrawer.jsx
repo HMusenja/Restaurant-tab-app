@@ -16,6 +16,8 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 
+import { useSnackbar } from "@/contexts/SnackbarContext";
+
 function formatEUR(cents) {
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
@@ -24,6 +26,8 @@ function formatEUR(cents) {
 }
 
 export default function CartDrawer({ open, onClose, tab, setTab, setError }) {
+const { showSnackbar } = useSnackbar();
+
   async function updateQty(menuItemId, qty) {
     setError("");
     try {
@@ -67,24 +71,41 @@ export default function CartDrawer({ open, onClose, tab, setTab, setError }) {
   const items = tab?.items || [];
 
   async function sendToService() {
-    setError("");
-    try {
-      const data = await createTicket(tab._id);
-      if (data?.tab) setTab(data.tab);
+  setError("");
 
-      // keeping your behavior (no backend change)
-      alert("Order sent to service ✅");
-      onClose();
-    } catch (e) {
-      setError(e.message || "Failed to send order");
-    }
+  try {
+    const data = await createTicket(tab._id);
+    if (data?.tab) setTab(data.tab);
+
+    showSnackbar({
+      type: "success",
+      message: "Order sent to kitchen!",
+      description: "You can track progress above in Order Status.",
+      action: {
+        label: "View status",
+        onClick: () =>
+          window.scrollTo({ top: 0, behavior: "smooth" }),
+      },
+    });
+
+    onClose();
+  } catch (e) {
+    setError(e.message || "Failed to send order");
+
+    showSnackbar({
+      type: "error",
+      message: "Failed to send order",
+      description: e.message || "Please try again.",
+    });
   }
+}
+
 
   const canSend = !!tab?._id && items.length > 0;
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0">
+      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0 bg-background">
         <div className="flex h-full flex-col">
           {/* Header (Code A style) */}
           <SheetHeader className="border-b border-border px-4 py-4">
@@ -257,8 +278,10 @@ export default function CartDrawer({ open, onClose, tab, setTab, setError }) {
 
               <Button
                 onClick={sendToService}
-                className="flex-1"
+               className="flex-1 bg-gradient-to-r from-primary to-accent hover:brightness-110"
                 disabled={!canSend}
+                
+
               >
                 Send Order
               </Button>

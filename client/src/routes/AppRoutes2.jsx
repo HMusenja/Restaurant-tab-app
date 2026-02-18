@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
+import LandingPage from "@/pages/LandingPage";
+
 // Staff pages
 import StaffLayout from "@/components/layout/StaffLayout";
 import StaffDashboard from "@/pages/StaffDashboard";
@@ -12,7 +14,8 @@ import StaffSettingsPage from "@/pages/staff/StaffSettingsPage.jsx";
 import StaffPaymentPage from "@/pages/StaffPaymentPage.jsx";
 
 // Guest pages...
-import GuestLayout from "@/components/layout/GuestLayout.jsx";
+import GuestShellLayout from "@/components/layout/GuestShellLayout.jsx";
+import GuestBareLayout from "@/components/layout/GuestBareLayout.jsx";
 import JoinPage from "@/pages/JoinPage.jsx";
 import EnterCodePage from "@/pages/EnterCodePage.jsx";
 import TableGuestPage from "@/pages/TableGuestPage.jsx";
@@ -23,16 +26,20 @@ import StaffUserManagementPage from "@/pages/staff/StaffUserManagementPage";
 import AdminFinancePage from "@/pages/admin/AdminFinancePage";
 import ManageReservationsPage from "@/pages/staff/ManageReservationsPage";
 
-
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Guest */}
-      <Route element={<GuestLayout />}>
-        <Route path="/" element={<Navigate to="/enter-code" replace />} />
+      <Route element={<GuestShellLayout />}>
+       
+       
+        <Route path="/t/:token" element={<TableGuestPage />} />
+      </Route>
+      
+      <Route element={<GuestBareLayout />}>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/join" element={<JoinPage />} />
         <Route path="/enter-code" element={<EnterCodePage />} />
-        <Route path="/t/:token" element={<TableGuestPage />} />
       </Route>
 
       {/* Staff */}
@@ -47,19 +54,14 @@ export default function AppRoutes() {
 
         {/*admin only */}
         <Route path="users" element={<StaffUserManagementPage />} />
-         <Route path="finance" element={<AdminFinancePage />} />
+        <Route path="finance" element={<AdminFinancePage />} />
 
-        
-
-
-        
         <Route path="pay/:tabId" element={<StaffPaymentPage />} />
       </Route>
 
-       {/* Staff Login */}
+      {/* Staff Login */}
       <Route path="/login" element={<StaffLoginPage />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
-
 
       {/* fallback */}
       <Route path="*" element={<Navigate to="/join" replace />} />

@@ -130,6 +130,9 @@ export async function payTab(req, res, next) {
   }
 }
 
+import Reservation from "../models/Reservation.js";
+// ... keep your other imports (Tab, Table, ServiceRequest)
+
 export async function closeTab(req, res, next) {
   try {
     const { tabId } = req.params;
@@ -150,9 +153,7 @@ export async function closeTab(req, res, next) {
     // Only PAID tabs can be closed
     if (tab.status !== "PAID") {
       console.log("❌ closeTab: Tab not PAID:", tab.status);
-      return res
-        .status(400)
-        .json({ message: "Tab must be paid before closing" });
+      return res.status(400).json({ message: "Tab must be paid before closing" });
     }
 
     // Block closing if there are still open service requests
@@ -212,20 +213,51 @@ export async function closeTab(req, res, next) {
       });
     }
 
+    // ✅ Mark seated reservation as completed (so it disappears from the active list)
+    // NOTE: best practice is Reservation status includes "COMPLETED".
+    // If you don't have it yet, use the fallback below.
+    try {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+
+      const update = await Reservation.updateMany(
+        {
+          table: tableId,
+          status: "SEATED",
+          reservedFor: { $gte: start, $lte: end },
+        },
+        { $set: { status: "COMPLETED", completedAt: new Date() } } // add completedAt if you want
+      );
+
+      console.log("✅ closeTab: reservations completed:", {
+        matched: update.matchedCount,
+        modified: update.modifiedCount,
+      });
+    } catch (e) {
+      // Fallback if your enum doesn't include COMPLETED yet:
+      // - either skip, or set to NO_SHOW/CANCELLED (not ideal)
+      console.warn("⚠️ closeTab: could not complete reservation (missing enum?)", e?.message);
+    }
+
     // 🔔 Realtime invalidation events (staff + guest)
     const io = req.app.get("io");
     if (io) {
       console.log("📣 closeTab: emitting socket invalidations");
+
       io.to("staff").emit("services:updated", { tableId, tabId: tab._id });
       io.to("staff").emit("tickets:updated", { tableId, tabId: tab._id });
       io.to("staff").emit("tab:updated", { tableId, tabId: tab._id });
 
-      io.to(`table:${tableId}`).emit("tab:updated", {
-        tableId,
-        tabId: tab._id,
-      });
+      // ✅ THIS is what your Reservations page is missing:
+      io.to("staff").emit("tables:updated", { tableId: String(tableId) });
+      io.to("staff").emit("reservations:updated");
 
-      // ✅ Optional: finance page can listen to this and auto-refresh
+      io.to(`table:${tableId}`).emit("tab:updated", { tableId, tabId: tab._id });
+
+      // finance refresh
       io.to("staff").emit("finance:updated", {
         tabId: tab._id,
         tableId,

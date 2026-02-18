@@ -105,12 +105,27 @@
 }
 
 @layer base {
+  html { font-size: clamp(15px, 0.9vw + 12px, 16px); }
+
   * {
     @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
+       @apply antialiased text-foreground bg-background;
+    text-rendering: optimizeLegibility;
+
+    h1 { font-size: clamp(1.6rem, 2.2vw + 1rem, 2.25rem); line-height: 1.15; }
+  h2 { font-size: clamp(1.35rem, 1.8vw + 0.9rem, 1.75rem); line-height: 1.2; }
+  h3 { font-size: clamp(1.15rem, 1.2vw + 0.85rem, 1.35rem); line-height: 1.25; }
+
+  p, li { line-height: 1.55; }
+  small { font-size: 0.875rem; }
+
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
   }
 
   /* Mobile-first touch targets */
@@ -159,4 +174,19 @@
   .gradient-text {
     @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
   }
+ @media (max-width: 380px) {
+    .btn-touch {
+      @apply min-h-10 px-3 text-[0.9rem];
+    }
+  }
+  
+}
+@keyframes slowZoom {
+  0% { transform: scale(1.05); }
+  100% { transform: scale(1.12); }
+}
+
+.animate-slow-zoom {
+  animation: slowZoom 18s ease-in-out infinite alternate;
+  will-change: transform;
 }

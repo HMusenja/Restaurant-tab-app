@@ -27,17 +27,19 @@ export default function MenuPanel({ menu = [], onAdd }) {
   }, [menu, activeCategory]);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex  h-full flex-col">
       {/* Header (like Code A) */}
       <div className="px-4 pt-4 pb-2">
-        <h2 className="flex items-center gap-2 text-xl font-bold text-gray-900">
-          <UtensilsCrossed className="h-5 w-5 text-black" />
+        <h2 className="flex items-center gap-2 text-xl font-bold text-foreground">
+          <UtensilsCrossed className="h-5 w-5 text-primary" />
           Menu
         </h2>
         <p className="mt-1 text-sm text-gray-500">
           Tap an item to add it to the shared table tab.
         </p>
       </div>
+      <div className="h-1 w-12 rounded-full bg-gradient-to-r from-primary to-accent mt-2" />
+
 
       {/* Sticky Category Tabs (like Code A) */}
       <CategoryTabs
