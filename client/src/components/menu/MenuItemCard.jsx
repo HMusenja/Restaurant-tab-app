@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import MenuDetailModal from "@/components/menu/MenuDetailModal";
+import MenuItemDetailModal from "@/components/menu/MenuItemDetailModal";
 
 const categoryStyles = {
   Drinks: "bg-sky-100 text-sky-700 border-sky-200",
@@ -11,59 +11,69 @@ const categoryStyles = {
 };
 
 function getCategoryClass(cat) {
-  return (
-    categoryStyles[cat] ||
-    "bg-secondary text-secondary-foreground border-border"
-  );
+  return categoryStyles[cat] || "bg-secondary text-secondary-foreground border-border";
 }
 
 function fallbackGradient(category) {
-  if (category === "Desserts")
-    return "from-pink-400/25 to-rose-400/15";
-  if (category === "Drinks")
-    return "from-sky-400/25 to-cyan-400/15";
-  if (category === "Starters")
-    return "from-emerald-400/25 to-lime-400/15";
+  if (category === "Desserts") return "from-pink-400/25 to-rose-400/15";
+  if (category === "Drinks") return "from-sky-400/25 to-cyan-400/15";
+  if (category === "Starters") return "from-emerald-400/25 to-lime-400/15";
   return "from-primary/25 to-accent/15";
 }
 
-export default function MenuItemCard({ item, onAdd, formatPrice }) {
+function MenuItemCardImpl({ item, onAdd, formatPrice }) {
   const [open, setOpen] = useState(false);
 
-  const image =
-    item.image || item.imageUrl || item.photoUrl || item.photo || null;
+  const image = useMemo(
+    () => item.image || item.imageUrl || item.photoUrl || item.photo || null,
+    [item]
+  );
 
   const description = item.description || item.desc || "";
   const category = item.category || "";
-
-  const handleCardClick = () => setOpen(true);
+  const isUnavailable = item?.available === false;
 
   return (
     <>
       <div
         role="button"
         tabIndex={0}
-        onClick={handleCardClick}
+        onClick={() => setOpen(true)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") setOpen(true);
         }}
-        className="group flex gap-4 rounded-2xl border border-border/60 bg-card p-4 shadow-soft transition-all duration-200 hover:shadow-medium hover:border-primary/25 active:scale-[0.99]"
+        className={[
+          "group relative flex gap-4 rounded-2xl border bg-card p-4 shadow-sm transition-all duration-200",
+          "border-border/60 hover:shadow-md hover:border-primary/25 active:scale-[0.99]",
+          // big perf win on long lists (Chromium)
+          "[content-visibility:auto] [contain-intrinsic-size:120px]",
+          isUnavailable ? "opacity-70" : "",
+        ].join(" ")}
+        aria-label={`Open ${item.name} details`}
       >
         {/* Image / Gradient */}
-        <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl border border-border/50 bg-secondary">
+        <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-2xl border border-border/50 bg-secondary">
           {image ? (
             <img
               src={image}
               alt={item.name}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div
-              className={[
-                "h-full w-full bg-gradient-to-br",
-                fallbackGradient(category),
-              ].join(" ")}
+              className={["h-full w-full bg-gradient-to-br", fallbackGradient(category)].join(" ")}
             />
+          )}
+
+          {/* subtle overlay for “premium food” feel */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+
+          {isUnavailable && (
+            <div className="absolute left-2 top-2 rounded-full bg-background/90 px-2 py-1 text-[11px] font-semibold text-foreground shadow-sm">
+              Unavailable
+            </div>
           )}
         </div>
 
@@ -72,7 +82,7 @@ export default function MenuItemCard({ item, onAdd, formatPrice }) {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="truncate font-semibold text-foreground">
+                <h3 className="truncate text-base font-semibold text-foreground">
                   {item.name}
                 </h3>
 
@@ -93,26 +103,23 @@ export default function MenuItemCard({ item, onAdd, formatPrice }) {
                   {description}
                 </p>
               ) : (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Popular choice
-                </p>
+                <p className="mt-1 text-sm text-muted-foreground">Popular choice</p>
               )}
             </div>
           </div>
 
           {/* Bottom Row */}
           <div className="mt-4 flex items-center justify-between">
-            <span className="text-xl font-bold text-primary">
-              {formatPrice()}
-            </span>
+            <span className="text-lg font-bold text-primary">{formatPrice()}</span>
 
             <Button
               size="sm"
+              disabled={isUnavailable}
               onClick={(e) => {
                 e.stopPropagation();
                 onAdd?.();
               }}
-             className="rounded-full shadow-soft active:scale-[0.96] transition-transform"
+              className="rounded-full shadow-sm active:scale-[0.96] transition-transform"
             >
               <Plus className="mr-1 h-4 w-4" />
               Add
@@ -121,13 +128,16 @@ export default function MenuItemCard({ item, onAdd, formatPrice }) {
         </div>
       </div>
 
-      <MenuDetailModal
+      <MenuItemDetailModal
         open={open}
         onOpenChange={setOpen}
         item={item}
-        onAdd={onAdd}
+        onAdd={(qty) => onAdd?.(item._id, qty)}
         formatPrice={formatPrice}
       />
     </>
   );
 }
+
+const MenuItemCard = memo(MenuItemCardImpl);
+export default MenuItemCard;

@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
-import { UtensilsCrossed } from "lucide-react";
+import { useDeferredValue, useMemo, useState } from "react";
+import { UtensilsCrossed, Search, SlidersHorizontal } from "lucide-react";
 import CategoryTabs from "../guest/CategoryTabs.jsx";
 import MenuItemCard from "./MenuItemCard.jsx";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function formatEUR(cents) {
   return new Intl.NumberFormat("de-DE", {
@@ -12,6 +15,11 @@ function formatEUR(cents) {
 
 export default function MenuPanel({ menu = [], onAdd }) {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+
+  // Optional: quick filter (works with your schema as-is)
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
 
   const categories = useMemo(() => {
     const set = new Set();
@@ -22,33 +30,90 @@ export default function MenuPanel({ menu = [], onAdd }) {
   }, [menu]);
 
   const filteredItems = useMemo(() => {
-    if (activeCategory === "All") return menu;
-    return menu.filter((m) => m.category === activeCategory);
-  }, [menu, activeCategory]);
+    let items = Array.isArray(menu) ? menu : [];
+
+    if (onlyAvailable) items = items.filter((m) => m?.available !== false);
+
+    if (activeCategory !== "All") {
+      items = items.filter((m) => m?.category === activeCategory);
+    }
+
+    const q = deferredQuery.trim().toLowerCase();
+    if (q) {
+      items = items.filter((m) => {
+        const name = (m?.name || "").toLowerCase();
+        const desc = (m?.description || m?.desc || "").toLowerCase();
+        const cat = (m?.category || "").toLowerCase();
+        return name.includes(q) || desc.includes(q) || cat.includes(q);
+      });
+    }
+
+    // Nice polish: available items first
+    items = items.slice().sort((a, b) => {
+      const aa = a?.available === false ? 1 : 0;
+      const bb = b?.available === false ? 1 : 0;
+      return aa - bb;
+    });
+
+    return items;
+  }, [menu, activeCategory, deferredQuery, onlyAvailable]);
 
   return (
-    <div className="flex  h-full flex-col">
-      {/* Header (like Code A) */}
-      <div className="px-4 pt-4 pb-2">
-        <h2 className="flex items-center gap-2 text-xl font-bold text-foreground">
-          <UtensilsCrossed className="h-5 w-5 text-primary" />
-          Menu
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Tap an item to add it to the shared table tab.
-        </p>
+    <div className="flex h-full flex-col">
+      {/* Sticky discovery header */}
+      <div className="sticky top-0 z-20 border-b border-border/40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+        <div className="px-4 pt-4 pb-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-xl font-bold text-foreground">
+                <UtensilsCrossed className="h-5 w-5 text-primary" />
+                Menu
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tap an item to view details and add it to the shared table tab.
+              </p>
+              <div className="mt-2 h-1 w-12 rounded-full bg-gradient-to-r from-primary to-accent" />
+            </div>
+          </div>
+
+          {/* Search + quick filter row */}
+          <div className="mt-4 flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search dishes, drinks, desserts…"
+                className="pl-9 rounded-2xl"
+              />
+            </div>
+
+            <Button
+              type="button"
+              variant={onlyAvailable ? "default" : "secondary"}
+              onClick={() => setOnlyAvailable((v) => !v)}
+              className={cn(
+                "rounded-2xl",
+                onlyAvailable && "shadow-sm"
+              )}
+              aria-pressed={onlyAvailable}
+              title="Toggle available only"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="ml-2 hidden sm:inline">Available</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Category Tabs */}
+        <CategoryTabs
+          categories={categories}
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+        />
       </div>
-      <div className="h-1 w-12 rounded-full bg-gradient-to-r from-primary to-accent mt-2" />
 
-
-      {/* Sticky Category Tabs (like Code A) */}
-      <CategoryTabs
-        categories={categories}
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-      />
-
-      {/* Scroll area + bottom padding like Code A (pb-40) */}
+      {/* Scroll area + safe bottom padding for cart drawer */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-40">
         {filteredItems.length > 0 ? (
           <div className="space-y-3">
@@ -62,9 +127,26 @@ export default function MenuPanel({ menu = [], onAdd }) {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+          <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
             <UtensilsCrossed className="mb-3 h-12 w-12 opacity-50" />
-            <p className="text-center">No items available in this category</p>
+            <p className="text-center font-medium">No matching items</p>
+            <p className="mt-1 text-center text-sm">
+              Try a different category or search term.
+            </p>
+
+            {(query || onlyAvailable || activeCategory !== "All") && (
+              <Button
+                variant="secondary"
+                className="mt-5 rounded-2xl"
+                onClick={() => {
+                  setQuery("");
+                  setOnlyAvailable(false);
+                  setActiveCategory("All");
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
           </div>
         )}
       </div>
