@@ -46,7 +46,6 @@ import {
   regenerateTableCode,
   fetchTables,
 } from "@/api/staffTableApi";
-import { getTabForStaff } from "@/api/staffTabApi";
 
 // ✅ services
 import { fetchServiceRequests, updateServiceRequest } from "@/api/servicesApi";
@@ -61,6 +60,10 @@ import {
 } from "@/api/staffReservationApi";
 
 import { useRealtime } from "@/contexts/RealtimeContext";
+
+// ✅ TabContext (staff mode uses activeTabId)
+import TabProvider from "@/contexts/TabContext/TabProvider";
+import { useTab } from "@/contexts/TabContext/TabContext";
 
 /* ------------------------------------------------------------------ */
 /* Helpers */
@@ -100,7 +103,7 @@ function toUiStatus({ backendStatus, reservationStatus }) {
   // backendStatus: FREE | OCCUPIED | RESERVED
   // reservationStatus: BOOKED | SEATED | null
   if (backendStatus === "OCCUPIED" || reservationStatus === "SEATED") return "occupied";
-  // IMPORTANT: your product decision: "Reserved" means reserved for TODAY only
+  // "Reserved" means reserved for TODAY only
   if (reservationStatus === "BOOKED") return "reserved";
   return "available";
 }
@@ -131,24 +134,7 @@ function normalizeTable(payload, reservation) {
   };
 }
 
-function normalizeTab(tabData) {
-  const tab = tabData?.tab ?? tabData;
-  const items = Array.isArray(tab?.items) ? tab.items : [];
-
-  return {
-    tabItems: items.map((it, idx) => ({
-      id: String(it.menuItemId || idx),
-      name: it.nameSnap || "Item",
-      quantity: it.qty ?? 1,
-      priceCents: it.priceCentsSnap ?? 0,
-      addedAt: it.addedAt ? new Date(it.addedAt) : new Date(),
-    })),
-    totalCents: tab?.totalCents ?? 0,
-  };
-}
-
 function todayYMD() {
-  // local date YYYY-MM-DD (matches listReservations?date=YYYY-MM-DD)
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -159,7 +145,6 @@ function todayYMD() {
 function pickActiveReservationForTable(reservations, tableId) {
   const now = new Date();
 
-  // active statuses only (TODAY list already)
   const active = (reservations || []).filter((r) => {
     const status = String(r.status || "").toUpperCase();
     if (status !== "BOOKED" && status !== "SEATED") return false;
@@ -168,10 +153,6 @@ function pickActiveReservationForTable(reservations, tableId) {
     return rid === String(tableId);
   });
 
-  // Priority:
-  // 1) SEATED wins
-  // 2) else earliest UPCOMING BOOKED (reservedFor >= now) wins
-  // 3) else earliest BOOKED wins
   active.sort((a, b) => {
     const aSeated = a.status === "SEATED";
     const bSeated = b.status === "SEATED";
@@ -206,8 +187,6 @@ function toLocalDateYYYYMMDD(dateInput) {
 }
 
 function buildISOFromLocalDateTime(dateStr, timeStr) {
-  // dateStr: YYYY-MM-DD
-  // timeStr: HH:MM
   const [y, m, d] = dateStr.split("-").map(Number);
   const [hh, mm] = timeStr.split(":").map(Number);
 
@@ -216,6 +195,77 @@ function buildISOFromLocalDateTime(dateStr, timeStr) {
   dt.setHours(hh || 0, mm || 0, 0, 0);
 
   return dt.toISOString();
+}
+
+/* ------------------------------------------------------------------ */
+/* Tab UI (staff) - consumes TabContext */
+/* ------------------------------------------------------------------ */
+
+function StaffActiveTabCard() {
+  const { tab, orderedLines, ticketsCount, status } = useTab();
+
+  const totalCents = tab?.totalCents ?? 0;
+  const ordered = Array.isArray(orderedLines) ? orderedLines : [];
+
+  if (status === "loading") {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Open Tab</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">Loading tab…</CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            Open Tab
+            <Badge variant="secondary">{ordered.length} items</Badge>
+          </span>
+          <Badge variant="outline" className="text-xs">
+            Tickets: {ticketsCount ?? 0}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent>
+        {ordered.length === 0 ? (
+          <p className="text-center text-muted-foreground py-4">No items yet</p>
+        ) : (
+          <div className="space-y-3">
+            {ordered.map((item, index) => (
+              <div key={`${item.menuItemId || item.nameSnap || "line"}-${index}`}>
+                {index > 0 && <Separator className="my-3" />}
+                <div className="flex justify-between items-start gap-3">
+                  <div className="space-y-1 min-w-0">
+                    <p className="font-medium truncate">
+                      {item.qty ?? 0}x {item.nameSnap || "Item"}
+                    </p>
+                    {item.status ? (
+                      <p className="text-xs text-muted-foreground">{item.status}</p>
+                    ) : null}
+                  </div>
+                  <p className="font-semibold shrink-0">
+                    {formatEUR((item.priceCentsSnap || 0) * (item.qty || 0))}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            <Separator className="my-3" />
+            <div className="flex justify-between items-center pt-2">
+              <p className="font-semibold">Total</p>
+              <p className="text-xl font-bold">{formatEUR(totalCents)}</p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -231,7 +281,6 @@ export default function StaffTableDetailPage() {
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
 
   const [table, setTable] = useState(null);
-  const [tab, setTab] = useState({ tabItems: [], totalCents: 0 });
 
   // ✅ requests
   const [requests, setRequests] = useState([]);
@@ -249,8 +298,8 @@ export default function StaffTableDetailPage() {
     name: "",
     phone: "",
     partySize: "2",
-    date: todayYMD(), // ✅ date picker (NOT only today)
-    time: toLocalTimeHHMM(new Date()), // ✅ time picker
+    date: todayYMD(),
+    time: toLocalTimeHHMM(new Date()),
     notes: "",
   });
 
@@ -337,7 +386,7 @@ export default function StaffTableDetailPage() {
     try {
       const data = await fetchTables();
       const list = data?.tables ?? [];
-      // normalize minimal fields
+
       const mapped = list
         .map((t) => ({
           id: String(t.id || t._id),
@@ -362,7 +411,7 @@ export default function StaffTableDetailPage() {
     try {
       setLoading(true);
 
-      // ✅ load TODAY reservation first so we compute UI status consistently
+      // Load TODAY reservation first to compute UI status consistently
       let activeRes = null;
       try {
         activeRes = await loadReservationForTableToday();
@@ -374,13 +423,6 @@ export default function StaffTableDetailPage() {
       const data = await getTableById(tableId);
       const ui = normalizeTable(data, activeRes);
       setTable(ui);
-
-      if (ui.activeTabId) {
-        const tabData = await getTabForStaff(ui.activeTabId);
-        setTab(normalizeTab(tabData));
-      } else {
-        setTab({ tabItems: [], totalCents: 0 });
-      }
 
       await loadRequests();
     } catch (e) {
@@ -395,12 +437,13 @@ export default function StaffTableDetailPage() {
     reload();
   }, [reload]);
 
-  // ✅ realtime wiring (context)
+  // realtime wiring (keep simple: reload page data on relevant staff events)
   useEffect(() => {
     const id = realtime.registerStaff({
       reloadTables: reload,
       reloadTickets: reload,
       reloadServices: loadRequests,
+      reloadMenu: null,
     });
     return () => realtime.unregisterStaff(id);
   }, [realtime, reload, loadRequests]);
@@ -408,15 +451,6 @@ export default function StaffTableDetailPage() {
   /* ------------------------- Derived values ------------------------ */
 
   const joinUrl = table?.joinUrl || `${window.location.origin}/join`;
-
-  const tabTotalLabel = useMemo(() => {
-    const cents =
-      typeof tab.totalCents === "number" && tab.totalCents > 0
-        ? tab.totalCents
-        : table?.tabTotalCents;
-
-    return formatEUR(cents || 0);
-  }, [tab.totalCents, table?.tabTotalCents]);
 
   const reservationTimeLabel = useMemo(() => {
     if (!reservation?.reservedFor) return "—";
@@ -434,15 +468,19 @@ export default function StaffTableDetailPage() {
   const canSeat = useMemo(() => {
     if (!reservation) return false;
     if (String(reservation.status) !== "BOOKED") return false;
-    // seatReservation will reject if table already OCCUPIED, so disable client-side too:
     if (table?.backendStatus === "OCCUPIED") return false;
     return true;
   }, [reservation, table?.backendStatus]);
 
   const canEdit = useMemo(() => {
-    // backend recommended: edit only BOOKED
     return !!reservation && String(reservation.status) === "BOOKED";
   }, [reservation]);
+
+  const tabTotalLabel = useMemo(() => {
+    // Use populated activeTab total as fallback until TabProvider loads
+    const cents = typeof table?.tabTotalCents === "number" ? table.tabTotalCents : 0;
+    return formatEUR(cents);
+  }, [table?.tabTotalCents]);
 
   /* ---------------------------- Handlers --------------------------- */
 
@@ -508,17 +546,14 @@ export default function StaffTableDetailPage() {
               joinCode: data?.code || prev.joinCode,
               joinUrl: data?.joinUrl || prev.joinUrl,
               activeTabId: data?.tab?._id || data?.tab?.id || prev.activeTabId,
+              tabTotalCents: data?.tab?.totalCents ?? prev.tabTotalCents,
             }
           : prev,
       );
 
-      const tabId = data?.tab?._id || data?.tab?.id;
-      if (tabId) {
-        const tabData = await getTabForStaff(tabId);
-        setTab(normalizeTab(tabData));
-      }
-
       setShowNewSessionDialog(false);
+
+      // reload will also ensure latest table state (and activeTabId)
       await reload();
     } catch (e) {
       setError(e?.message || "Failed to start session");
@@ -580,7 +615,7 @@ export default function StaffTableDetailPage() {
       const reservedForISO = buildISOFromLocalDateTime(resForm.date, resForm.time);
 
       await createReservation({
-        tableId, // may be occupied: allowed (your choice 4.B)
+        tableId,
         name: resForm.name.trim(),
         phone: resForm.phone.trim(),
         partySize: partySizeNum,
@@ -599,7 +634,6 @@ export default function StaffTableDetailPage() {
         notes: "",
       });
 
-      // if created for TODAY for this table, it'll show + mark reserved
       await reload();
     } catch (e) {
       setError(e?.message || "Failed to create reservation");
@@ -611,10 +645,7 @@ export default function StaffTableDetailPage() {
   const openEditReservation = async () => {
     if (!reservation) return;
 
-    // Load tables only when needed
-    if (!allTables.length) {
-      await loadTablesForMove();
-    }
+    if (!allTables.length) await loadTablesForMove();
 
     setEditForm({
       id: reservation.id,
@@ -662,7 +693,6 @@ export default function StaffTableDetailPage() {
 
       toast.success("Reservation updated");
       setShowEditReservation(false);
-
       await reload();
     } catch (e) {
       setError(e?.message || "Failed to update reservation");
@@ -693,7 +723,6 @@ export default function StaffTableDetailPage() {
           : prev,
       );
 
-      setTab({ tabItems: [], totalCents: 0 });
       setRequests([]);
       setReservation(null);
 
@@ -785,7 +814,7 @@ export default function StaffTableDetailPage() {
         </div>
       ) : null}
 
-      {/* ✅ Reservation (TODAY only status impact, but we allow creating/editing any day) */}
+      {/* Reservations */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center justify-between">
@@ -945,8 +974,8 @@ export default function StaffTableDetailPage() {
 
                 {table.backendStatus === "OCCUPIED" ? (
                   <div className="text-xs text-muted-foreground">
-                    Note: This table is currently occupied. You can still book for later today or future days.
-                    Reservation time is what matters.
+                    Note: This table is currently occupied. You can still book for later today
+                    or future days. Reservation time is what matters.
                   </div>
                 ) : null}
               </div>
@@ -973,7 +1002,9 @@ export default function StaffTableDetailPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Edit Reservation</DialogTitle>
-                <DialogDescription>Move table, adjust time/date, or edit guest details.</DialogDescription>
+                <DialogDescription>
+                  Move table, adjust time/date, or edit guest details.
+                </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-3 py-2">
@@ -985,7 +1016,9 @@ export default function StaffTableDetailPage() {
                     disabled={loadingTablesForMove}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={loadingTablesForMove ? "Loading tables…" : "Select a table"} />
+                      <SelectValue
+                        placeholder={loadingTablesForMove ? "Loading tables…" : "Select a table"}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {allTables.map((t) => (
@@ -1194,7 +1227,7 @@ export default function StaffTableDetailPage() {
         </Dialog>
       </div>
 
-      {/* ✅ Service Requests Card */}
+      {/* Service Requests */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center justify-between">
@@ -1265,7 +1298,7 @@ export default function StaffTableDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Table Code Card */}
+      {/* Table Code */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center justify-between">
@@ -1288,6 +1321,7 @@ export default function StaffTableDetailPage() {
             </div>
           </CardTitle>
         </CardHeader>
+
         <CardContent>
           <div className="flex items-center gap-3">
             <div className="flex-1 bg-muted rounded-lg px-4 py-3 font-mono text-2xl font-bold tracking-widest text-center">
@@ -1297,13 +1331,16 @@ export default function StaffTableDetailPage() {
               {copied ? <Check className="w-5 h-5 text-success" /> : <Copy className="w-5 h-5" />}
             </Button>
           </div>
+
           {table.status !== "occupied" ? (
-            <p className="mt-2 text-xs text-muted-foreground">Start a session to generate a join code.</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Start a session to generate a join code.
+            </p>
           ) : null}
         </CardContent>
       </Card>
 
-      {/* Session Info (if occupied) */}
+      {/* Session Info (occupied) */}
       {table.status === "occupied" ? (
         <>
           <Card>
@@ -1319,6 +1356,7 @@ export default function StaffTableDetailPage() {
                   <p className="text-2xl font-bold">{table.guestCount ?? "—"}</p>
                   <p className="text-xs text-muted-foreground">Guests</p>
                 </div>
+
                 <div className="space-y-1">
                   <div className="flex items-center justify-center gap-1 text-muted-foreground">
                     <Clock className="w-4 h-4" />
@@ -1326,6 +1364,7 @@ export default function StaffTableDetailPage() {
                   <p className="text-2xl font-bold">{getSessionDuration(table.assignedAt)}</p>
                   <p className="text-xs text-muted-foreground">Duration</p>
                 </div>
+
                 <div className="space-y-1">
                   <div className="flex items-center justify-center gap-1 text-muted-foreground">
                     <Receipt className="w-4 h-4" />
@@ -1337,40 +1376,21 @@ export default function StaffTableDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center justify-between">
-                Open Tab
-                <Badge variant="secondary">{tab.tabItems.length} items</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tab.tabItems.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">No items yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {tab.tabItems.map((item, index) => (
-                    <div key={item.id}>
-                      {index > 0 && <Separator className="my-3" />}
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                          <p className="font-medium">
-                            {item.quantity}x {item.name}
-                          </p>
-                        </div>
-                        <p className="font-semibold">{formatEUR(item.priceCents * item.quantity)}</p>
-                      </div>
-                    </div>
-                  ))}
-                  <Separator className="my-3" />
-                  <div className="flex justify-between items-center pt-2">
-                    <p className="font-semibold">Total</p>
-                    <p className="text-xl font-bold">{tabTotalLabel}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* ✅ TabContext-driven Open Tab */}
+          {table.activeTabId ? (
+            <TabProvider mode="staff" tabId={table.activeTabId}>
+              <StaffActiveTabCard />
+            </TabProvider>
+          ) : (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Open Tab</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                No active tab for this table.
+              </CardContent>
+            </Card>
+          )}
         </>
       ) : null}
 

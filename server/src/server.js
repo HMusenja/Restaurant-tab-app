@@ -19,6 +19,7 @@ import userRoutes from "./routes/userRoutes.js"
 import serviceRequestRoutes from "./routes/serviceRequetRoutes.js"
 import adminRoutes from "./routes/adminUserRoutes.js"
 import reservationRoutes from "./routes/reservationRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js"
 
 
 
@@ -105,6 +106,8 @@ app.use("/api", joinRoutes);
 app.use("/api", joinCodeRoutes);
 app.use("/api", serviceRequestRoutes)
 app.use("/api/staff/reservations", reservationRoutes);
+app.use("/api", uploadRoutes);
+
 
 
 

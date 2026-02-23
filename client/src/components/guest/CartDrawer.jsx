@@ -1,11 +1,4 @@
-import {
-  updateTabItemQty,
-  removeTabItem,
-  setTipPercent,
-  setTipAmountCents,
-} from "../../api/guestApi";
-import { createTicket } from "../../api/ticketApi";
-
+import { useState } from "react";
 import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 
 import { useSnackbar } from "@/contexts/SnackbarContext";
+import { useTab } from "@/contexts/TabContext/TabContext";
 
 function formatEUR(cents) {
   return new Intl.NumberFormat("de-DE", {
@@ -25,89 +19,109 @@ function formatEUR(cents) {
   }).format((cents || 0) / 100);
 }
 
-export default function CartDrawer({ open, onClose, tab, setTab, setError }) {
-const { showSnackbar } = useSnackbar();
+export default function CartDrawer({ open, onClose }) {
+  const { showSnackbar } = useSnackbar();
 
-  async function updateQty(menuItemId, qty) {
-    setError("");
+  const {
+    tab,
+    clearError,
+    updateQty,
+    removeItem,
+    setTipPercent,
+    setTipAmountCents,
+    createTicketAndClear,
+  } = useTab();
+
+  const items = tab?.items || [];
+  const [clearing, setClearing] = useState(false);
+
+  async function onUpdateQty(menuItemId, qty) {
+    clearError?.();
     try {
-      const data = await updateTabItemQty(tab._id, menuItemId, qty);
-      setTab(data.tab);
+      await updateQty(menuItemId, qty);
     } catch (e) {
-      setError(e.message || "Failed to update item");
+      showSnackbar({
+        type: "error",
+        message: "Failed to update item",
+        description: e.message || "Please try again.",
+      });
     }
   }
 
-  async function remove(menuItemId) {
-    setError("");
+  async function onRemove(menuItemId) {
+    clearError?.();
     try {
-      const data = await removeTabItem(tab._id, menuItemId);
-      setTab(data.tab);
+      await removeItem(menuItemId);
     } catch (e) {
-      setError(e.message || "Failed to remove item");
+      showSnackbar({
+        type: "error",
+        message: "Failed to remove item",
+        description: e.message || "Please try again.",
+      });
     }
   }
 
   async function tipPercent(pct) {
-    setError("");
+    clearError?.();
     try {
-      const data = await setTipPercent(tab._id, pct);
-      setTab(data.tab);
+      await setTipPercent(pct);
     } catch (e) {
-      setError(e.message || "Failed to set tip");
+      showSnackbar({
+        type: "error",
+        message: "Failed to set tip",
+        description: e.message || "Please try again.",
+      });
     }
   }
 
   async function tipAmount(cents) {
-    setError("");
+    clearError?.();
     try {
-      const data = await setTipAmountCents(tab._id, cents);
-      setTab(data.tab);
+      await setTipAmountCents(cents);
     } catch (e) {
-      setError(e.message || "Failed to set tip");
+      showSnackbar({
+        type: "error",
+        message: "Failed to set tip",
+        description: e.message || "Please try again.",
+      });
     }
   }
 
-  const items = tab?.items || [];
-
   async function sendToService() {
-  setError("");
+    clearError?.();
 
-  try {
-    const data = await createTicket(tab._id);
-    if (data?.tab) setTab(data.tab);
+    try {
+      await createTicketAndClear();
 
-    showSnackbar({
-      type: "success",
-      message: "Order sent to kitchen!",
-      description: "You can track progress above in Order Status.",
-      action: {
-        label: "View status",
-        onClick: () =>
-          window.scrollTo({ top: 0, behavior: "smooth" }),
-      },
-    });
+      showSnackbar({
+        type: "success",
+        message: "Order sent to kitchen!",
+        description: "You can track progress above in Order Status.",
+        action: {
+          label: "View status",
+          onClick: () => window.scrollTo({ top: 0, behavior: "smooth" }),
+        },
+      });
 
-    onClose();
-  } catch (e) {
-    setError(e.message || "Failed to send order");
-
-    showSnackbar({
-      type: "error",
-      message: "Failed to send order",
-      description: e.message || "Please try again.",
-    });
+      onClose();
+    } catch (e) {
+      showSnackbar({
+        type: "error",
+        message: "Failed to send order",
+        description: e.message || "Please try again.",
+      });
+    }
   }
-}
-
 
   const canSend = !!tab?._id && items.length > 0;
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0 bg-background">
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] rounded-t-3xl p-0 bg-background"
+      >
         <div className="flex h-full flex-col">
-          {/* Header (Code A style) */}
           <SheetHeader className="border-b border-border px-4 py-4">
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2 text-lg font-bold">
@@ -116,16 +130,11 @@ const { showSnackbar } = useSnackbar();
               </SheetTitle>
               <SheetDescription className="sr-only">
                 Review items in your cart, adjust quantities, add a tip, and
-                send your order to service.
+                send your order.
               </SheetDescription>
-
-              <Button variant="ghost" size="icon-sm" onClick={onClose}>
-                <X className="h-5 w-5" />
-              </Button>
             </div>
           </SheetHeader>
 
-          {/* Body */}
           <div className="flex-1 overflow-y-auto px-4 py-4 smooth-scroll">
             {!tab?._id ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -159,7 +168,7 @@ const { showSnackbar } = useSnackbar();
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => remove(it.menuItemId)}
+                        onClick={() => onRemove(it.menuItemId)}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -167,14 +176,13 @@ const { showSnackbar } = useSnackbar();
                     </div>
 
                     <div className="flex items-center justify-between">
-                      {/* Qty pill (Code A style) */}
                       <div className="flex items-center gap-3 rounded-full bg-secondary p-1">
                         <Button
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => {
-                            if (it.qty <= 1) remove(it.menuItemId);
-                            else updateQty(it.menuItemId, it.qty - 1);
+                            if (it.qty <= 1) onRemove(it.menuItemId);
+                            else onUpdateQty(it.menuItemId, it.qty - 1);
                           }}
                           className="h-8 w-8 rounded-full"
                         >
@@ -189,7 +197,7 @@ const { showSnackbar } = useSnackbar();
                           variant="ghost"
                           size="icon-sm"
                           onClick={() =>
-                            updateQty(it.menuItemId, Math.min(99, it.qty + 1))
+                            onUpdateQty(it.menuItemId, Math.min(99, it.qty + 1))
                           }
                           className="h-8 w-8 rounded-full"
                         >
@@ -206,7 +214,6 @@ const { showSnackbar } = useSnackbar();
               </div>
             )}
 
-            {/* Tip section (keeps your behavior, styled to match A) */}
             {tab?._id && (
               <div className="mt-6 rounded-lg border border-border/50 bg-card p-4 shadow-soft">
                 <div className="font-semibold text-foreground">Tip</div>
@@ -246,7 +253,6 @@ const { showSnackbar } = useSnackbar();
             )}
           </div>
 
-          {/* Footer (Code A style bottom block) */}
           <div className="safe-bottom border-t border-border bg-card p-4">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-muted-foreground">Total</span>
@@ -264,24 +270,25 @@ const { showSnackbar } = useSnackbar();
 
             <div className="flex gap-3">
               <Button
+                disabled={clearing || !tab?._id || items.length === 0}
                 variant="outline"
                 className="flex-1"
-                onClick={() => {
-                  // UI-only clear behavior: remove each item via your existing API
-                  // (keeps backend logic; no new endpoints assumed)
-                  items.forEach((it) => remove(it.menuItemId));
+                onClick={async () => {
+                  setClearing(true);
+                  try {
+                    for (const it of items) await onRemove(it.menuItemId);
+                  } finally {
+                    setClearing(false);
+                  }
                 }}
-                disabled={!tab?._id || items.length === 0}
               >
                 Clear Cart
               </Button>
 
               <Button
                 onClick={sendToService}
-               className="flex-1 bg-gradient-to-r from-primary to-accent hover:brightness-110"
+                className="flex-1 bg-gradient-to-r from-primary to-accent hover:brightness-110"
                 disabled={!canSend}
-                
-
               >
                 Send Order
               </Button>

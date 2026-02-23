@@ -7,6 +7,7 @@ import {
   Ticket,
   Settings,
   Shield,
+  UtensilsCrossed,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -101,6 +102,12 @@ export default function StaffLayout() {
             <Settings className="h-4 w-4" />
             Settings
           </NavLink>
+          {user.role === "admin" && (
+            <NavLink to="/staff/menu" className={linkClass}>
+              <UtensilsCrossed className="h-4 w-4" />
+              Menu Management
+            </NavLink>
+          )}
           {user.role === "admin" && (
             <NavLink to="/staff/users" className={linkClass}>
               <Shield className="h-4 w-4" />

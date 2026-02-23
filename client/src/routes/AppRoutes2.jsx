@@ -19,23 +19,35 @@ import GuestBareLayout from "@/components/layout/GuestBareLayout.jsx";
 import JoinPage from "@/pages/JoinPage.jsx";
 import EnterCodePage from "@/pages/EnterCodePage.jsx";
 import TableGuestPage from "@/pages/TableGuestPage.jsx";
+
 import StaffTableDetailPage from "@/pages/staff/StaffTableDetailPage";
 import StaffLoginPage from "@/pages/StaffLoginPage";
 import ChangePasswordPage from "@/pages/ChangePasswordPage";
 import StaffUserManagementPage from "@/pages/staff/StaffUserManagementPage";
 import AdminFinancePage from "@/pages/admin/AdminFinancePage";
 import ManageReservationsPage from "@/pages/staff/ManageReservationsPage";
+import MenuManagementPage from "@/pages/staff/MenuManagementPage";
+
+// ✅ NEW: route wrappers
+import GuestTabRoute from "@/routes/GuestTabRoute";
+import StaffTabRoute from "@/routes/StaffTabRoute";
 
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Guest */}
       <Route element={<GuestShellLayout />}>
-       
-       
-        <Route path="/t/:token" element={<TableGuestPage />} />
+        {/* ✅ Wrap TableGuestPage with TabProvider via GuestTabRoute */}
+        <Route
+          path="/t/:token"
+          element={
+            <GuestTabRoute>
+              <TableGuestPage />
+            </GuestTabRoute>
+          }
+        />
       </Route>
-      
+
       <Route element={<GuestBareLayout />}>
         <Route path="/" element={<LandingPage />} />
         <Route path="/join" element={<JoinPage />} />
@@ -47,14 +59,25 @@ export default function AppRoutes() {
         <Route index element={<StaffDashboard />} />
         <Route path="requests" element={<StaffRequestsPage />} />
         <Route path="tables" element={<StaffTablesPage />} />
-        <Route path="tables/:tableId" element={<StaffTableDetailPage />} />
+
+        {/* ✅ Wrap StaffTableDetailPage with TabProvider via StaffTabRoute */}
+        <Route
+          path="tables/:tableId"
+          element={
+            <StaffTabRoute>
+              <StaffTableDetailPage />
+            </StaffTabRoute>
+          }
+        />
+
         <Route path="tickets" element={<StaffTicketsPage />} />
         <Route path="settings" element={<StaffSettingsPage />} />
         <Route path="reservations" element={<ManageReservationsPage />} />
 
-        {/*admin only */}
+        {/* admin only */}
         <Route path="users" element={<StaffUserManagementPage />} />
         <Route path="finance" element={<AdminFinancePage />} />
+        <Route path="menu" element={<MenuManagementPage />} />
 
         <Route path="pay/:tabId" element={<StaffPaymentPage />} />
       </Route>

@@ -15,7 +15,8 @@ export default function StaffPaymentPage() {
   const navigate = useNavigate();
 
   const [tab, setTab] = useState(null);
-  const [method, setMethod] = useState("cash"); // CASH | CARD
+  const [orderedLines, setOrderedLines] = useState([]); // ✅ from tickets
+  const [method, setMethod] = useState("cash"); // cash  | card
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -26,6 +27,7 @@ export default function StaffPaymentPage() {
     try {
       const data = await getTabForStaff(tabId);
       setTab(data.tab);
+      setOrderedLines(Array.isArray(data.orderedLines) ? data.orderedLines : []);
     } catch (e) {
       setError(e.message || "Failed to load tab");
     } finally {
@@ -38,9 +40,33 @@ export default function StaffPaymentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabId]);
 
+  const status = tab?.status;
+  const tableNumber = tab?.table?.number ?? "?";
+
+  // ✅ What staff should charge: tab.totalCents is authoritative
   const totalCents = useMemo(() => {
-    // prefer totalCents but fall back safely
     return tab?.totalCents ?? tab?.subtotalCents ?? 0;
+  }, [tab]);
+
+  // Optional: show cart items that haven't been sent yet
+  const cartItems = tab?.items || [];
+
+  // ✅ Ordered subtotal (tickets) for display only
+  const orderedSubtotalCents = useMemo(() => {
+    return (orderedLines || []).reduce((sum, l) => {
+      const price = l.priceCentsSnap ?? 0;
+      const qty = l.qty ?? 0;
+      return sum + price * qty;
+    }, 0);
+  }, [orderedLines]);
+
+  // Tip display (optional)
+  const tipCents = useMemo(() => {
+    const due = tab?.amountDueCents ?? 0;
+    // If you have explicit tip amount stored somewhere, use it.
+    // Otherwise you can derive tip roughly: total - (billSubtotal + cartSubtotal)
+    // But keep it simple unless you expose tipCents from backend.
+    return null;
   }, [tab]);
 
   async function handlePay() {
@@ -60,22 +86,24 @@ export default function StaffPaymentPage() {
     setError("");
     setBusy(true);
     try {
-  await closeTab(tabId);
-} catch (e) {
-  const msg =
-    e?.response?.data?.message ||
-    "Cannot close tab while requests are still open";
-
-  setError(msg);
-} finally {
+      await closeTab(tabId);
+      // After close, best to refresh so UI reflects CLOSED/table freed
+      await load();
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Cannot close tab while requests are still open";
+      setError(msg);
+    } finally {
       setBusy(false);
     }
   }
 
   if (loading) return <div className="p-6">Loading…</div>;
+  if (!tab) return <div className="p-6 text-sm text-red-600">{error || "Tab not found"}</div>;
 
-  const tableNumber = tab?.table?.number ?? "?";
-  const status = tab?.status;
+  const hasAnyLines = (orderedLines?.length || 0) > 0 || (cartItems?.length || 0) > 0;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -85,34 +113,65 @@ export default function StaffPaymentPage() {
         <div className="text-lg font-semibold">Payment</div>
         <div className="text-sm opacity-70">Status: {status}</div>
       </div>
-  
 
       {/* Error */}
       {error ? <div className="p-4 text-sm text-red-600">{error}</div> : null}
 
       {/* Content */}
       <div className="flex-1 p-4 space-y-4">
-        {/* Items */}
+        {/* ✅ Ordered Items (from tickets) */}
         <div className="border rounded-xl p-4">
-          <div className="font-semibold">Items</div>
+          <div className="font-semibold">Ordered Items</div>
 
-          {!tab?.items?.length ? (
-            <div className="mt-2 text-sm opacity-70">No items.</div>
+          {orderedLines.length === 0 ? (
+            <div className="mt-2 text-sm opacity-70">No ordered items yet.</div>
+          ) : (
+            <>
+              <div className="mt-3 space-y-2">
+                {orderedLines.map((l, idx) => (
+                  <div
+                    key={String(l.menuItemId || l.nameSnap || idx)}
+                    className="flex justify-between gap-3 text-sm"
+                  >
+                    <div className="min-w-0 truncate">
+                      {l.nameSnap || "Item"} {l.qty > 1 ? `×${l.qty}` : ""}
+                      <span className="ml-2 text-xs opacity-60">
+                        {String(l.status || "NEW").toLowerCase()}
+                      </span>
+                    </div>
+                    <div className="shrink-0">
+                      {formatEUR((l.priceCentsSnap ?? 0) * (l.qty ?? 0))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 flex justify-between text-sm opacity-80">
+                <span>Ordered Subtotal</span>
+                <span className="font-medium">{formatEUR(orderedSubtotalCents)}</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Optional: Cart (not yet sent) */}
+        <div className="border rounded-xl p-4">
+          <div className="font-semibold">Cart (Not Sent Yet)</div>
+
+          {cartItems.length === 0 ? (
+            <div className="mt-2 text-sm opacity-70">Cart is empty.</div>
           ) : (
             <div className="mt-3 space-y-2">
-              {tab.items.map((it, idx) => (
+              {cartItems.map((it, idx) => (
                 <div
-                  key={it._id || idx}
+                  key={String(it.menuItemId || it._id || idx)}
                   className="flex justify-between gap-3 text-sm"
                 >
                   <div className="min-w-0 truncate">
-                    {it.nameSnap || it.name || "Item"}{" "}
-                    {it.qty > 1 ? `×${it.qty}` : ""}
+                    {it.nameSnap || it.name || "Item"} {it.qty > 1 ? `×${it.qty}` : ""}
                   </div>
                   <div className="shrink-0">
-                    {formatEUR(
-                      (it.priceCentsSnap ?? it.priceCents ?? 0) * (it.qty || 0),
-                    )}
+                    {formatEUR((it.priceCentsSnap ?? it.priceCents ?? 0) * (it.qty || 0))}
                   </div>
                 </div>
               ))}
@@ -123,8 +182,11 @@ export default function StaffPaymentPage() {
         {/* Totals */}
         <div className="border rounded-xl p-4">
           <div className="flex justify-between text-sm">
-            <span>Total</span>
+            <span>Total Due</span>
             <span className="font-semibold">{formatEUR(totalCents)}</span>
+          </div>
+          <div className="mt-1 text-xs opacity-70">
+            Total due is taken from the tab totals (includes sent orders + any cart + tip).
           </div>
         </div>
 
@@ -136,15 +198,15 @@ export default function StaffPaymentPage() {
             <div className="flex gap-2">
               <Button
                 type="button"
-                variant={method === "CASH" ? "default" : "secondary"}
-                onClick={() => setMethod("CASH")}
+                variant={method === "cash" ? "default" : "secondary"}
+                onClick={() => setMethod("cash")}
               >
                 Cash
               </Button>
               <Button
                 type="button"
-                variant={method === "CARD" ? "default" : "secondary"}
-                onClick={() => setMethod("CARD")}
+                variant={method === "card" ? "default" : "secondary"}
+                onClick={() => setMethod("card")}
               >
                 Card
               </Button>
@@ -153,12 +215,16 @@ export default function StaffPaymentPage() {
             <Button
               className="w-full"
               onClick={handlePay}
-              disabled={busy || !tab?.items?.length}
+              disabled={busy || !hasAnyLines}
             >
-              {busy
-                ? "Processing…"
-                : `Confirm Payment (${formatEUR(totalCents)})`}
+              {busy ? "Processing…" : `Confirm Payment (${formatEUR(totalCents)})`}
             </Button>
+
+            {!hasAnyLines ? (
+              <div className="text-xs text-muted-foreground">
+                Nothing to pay yet (no ordered items and cart is empty).
+              </div>
+            ) : null}
           </div>
         ) : null}
 

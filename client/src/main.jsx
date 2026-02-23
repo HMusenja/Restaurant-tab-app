@@ -8,6 +8,7 @@ import { RealtimeProvider } from "./contexts/RealtimeContext.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import { ServiceProvider } from "./contexts/ServiceContext.jsx";
 import { ReservationsProvider } from "./contexts/reservations/ReservationsContext.jsx";
+import { MenuProvider } from "./contexts/MenuContext.jsx";
 
 setAxiosDefaults();
 
@@ -15,11 +16,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <AuthProvider>
       <RealtimeProvider>
-        <ServiceProvider>
-          <ReservationsProvider>
-             <App />
-          </ReservationsProvider>
-        </ServiceProvider>
+        <MenuProvider>
+          <ServiceProvider>
+            <ReservationsProvider>
+              <App />
+            </ReservationsProvider>
+          </ServiceProvider>
+        </MenuProvider>
       </RealtimeProvider>
     </AuthProvider>
   </BrowserRouter>,

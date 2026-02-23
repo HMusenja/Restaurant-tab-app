@@ -282,11 +282,95 @@ export async function getTab(req, res, next) {
 
     if (!tab) return res.status(404).json({ message: "Tab not found" });
 
-    if (!tab.items || tab.items.length === 0) {
-      await hydrateTabItemsFromTickets(tab);
-    }
+    // if (!tab.items || tab.items.length === 0) {
+    //   await hydrateTabItemsFromTickets(tab);
+    // }
 
     return res.json({ tab });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// -------------------------------------
+// Staff Only
+// -------------------------------------
+
+function mergeOrderedLines(lines = []) {
+  const map = new Map();
+
+  // NEW < PREPARING < READY < DONE  (NEW is most urgent)
+  const rank = { NEW: 1, PREPARING: 2, READY: 3, DONE: 4 };
+
+  for (const l of lines) {
+    const key = String(l.menuItemId || l.nameSnap);
+    const prev = map.get(key);
+
+    if (!prev) {
+      map.set(key, {
+        menuItemId: l.menuItemId || null,
+        nameSnap: l.nameSnap,
+        qty: l.qty || 0,
+        status: l.status || "NEW",
+        // ✅ will be filled later
+        priceCentsSnap: 0,
+      });
+    } else {
+      prev.qty += l.qty || 0;
+
+      // keep "most urgent" status
+      const cur = rank[prev.status] ?? 99;
+      const nxt = rank[l.status] ?? 99;
+      if (nxt < cur) prev.status = l.status;
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+export async function getTabForStaff(req, res, next) {
+  try {
+    const { tabId } = req.params;
+
+    const tab = await Tab.findById(tabId).populate("table", "number status");
+    if (!tab) return res.status(404).json({ message: "Tab not found" });
+
+    // Pull all tickets for this tab
+    const tickets = await Ticket.find({ tab: tab._id })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    const allLines = tickets.flatMap((t) => t.lines || []);
+    const orderedLines = mergeOrderedLines(allLines);
+
+    // ✅ Attach prices to orderedLines (batch fetch)
+    const menuItemIds = orderedLines
+      .map((l) => l.menuItemId)
+      .filter(Boolean)
+      .map((id) => String(id));
+
+    if (menuItemIds.length) {
+      const menuItems = await MenuItem.find(
+        { _id: { $in: menuItemIds } },
+        { priceCents: 1 },
+      ).lean();
+
+      const priceMap = new Map(
+        menuItems.map((m) => [String(m._id), m.priceCents]),
+      );
+
+      for (const l of orderedLines) {
+        if (l.menuItemId) {
+          l.priceCentsSnap = priceMap.get(String(l.menuItemId)) ?? 0;
+        }
+      }
+    }
+
+    return res.json({
+      tab,
+      orderedLines,     // ✅ now includes priceCentsSnap
+      ticketsCount: tickets.length,
+    });
   } catch (err) {
     next(err);
   }

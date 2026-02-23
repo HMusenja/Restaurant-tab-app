@@ -1,7 +1,7 @@
 import { get, post } from "./client";
 
 export function getTabForStaff(tabId) {
-  return get(`/staff/tabs/${tabId}`); // we'll add this endpoint in Phase 3B
+  return get(`/staff/tabs/${tabId}`); 
 }
 
 export function payTab(tabId, method) {

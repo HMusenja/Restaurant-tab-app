@@ -1,7 +1,8 @@
 import { get, post, patch } from "./client";
 
 // Tables
-export const fetchActiveTab = (token) => get(`/tables/${token}/active-tab`);
+export const fetchActiveTab = (token, config) =>
+  get(`/tables/${token}/active-tab`, config);
 
 // Tabs
 export const openTab = (tableToken) => post(`/tabs/open`, { tableToken });

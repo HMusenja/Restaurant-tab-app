@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Bell } from "lucide-react";
 
-import { addItemToTab } from "../api/guestApi";
 import { fetchTableTickets } from "../api/guestTicketsApi";
-import { fetchMenu } from "../api/menuApi";
+import { fetchServiceRequests } from "@/api/servicesApi";
 
-import { useTableSession } from "../hooks/useTableSession.js";
 import { useRealtime } from "../contexts/RealtimeContext.jsx";
-import { optimisticAddToTab } from "@/utils/tabOptimistic";
+import { useMenu } from "@/contexts/MenuContext";
+
+import { useTab } from "@/contexts/TabContext/TabContext";
 
 import TopBar from "../components/guest/TopBar.jsx";
 import MenuPanel from "@/components/menu/MenuPanel";
@@ -16,8 +16,6 @@ import TabSummaryCard from "../components/guest/TabSummaryCard.jsx";
 import CartDrawer from "../components/guest/CartDrawer.jsx";
 import OrderStatusPanel from "../components/guest/OrderStatusPanel.jsx";
 import RequestServiceModal from "../components/guest/RequestServiceModal.jsx";
-
-import { fetchServiceRequests } from "@/api/servicesApi";
 import RequestCard from "../components/guest/RequestCard.jsx";
 
 export default function TableGuestPage() {
@@ -25,26 +23,27 @@ export default function TableGuestPage() {
   const navigate = useNavigate();
   const rt = useRealtime();
 
+  // ✅ TabContext is now the source of truth for tab + table
   const {
-    loading,
+    status,
     error,
-    setError,
+    clearError,
     table,
     tab,
-    setTab,
-    ensureTabOpen,
-    silentReload,
-  } = useTableSession(token);
+    refresh,
+    addItem,
+    isMutatingRef,
+  } = useTab();
+
+  const { items: menuItems, loadMenu } = useMenu();
 
   const [tickets, setTickets] = useState([]);
-  const [menu, setMenu] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [serviceModalOpen, setServiceModalOpen] = useState(false);
 
   const [requests, setRequests] = useState([]);
   const [reqLoading, setReqLoading] = useState(false);
 
-  const addingRef = useRef(false);
   const redirectTimer = useRef(null);
 
   const loadRequests = useCallback(async () => {
@@ -98,73 +97,45 @@ export default function TableGuestPage() {
     loadTickets();
   }, [loadTickets]);
 
-  // Menu load
+  // ✅ Menu loads from context
   useEffect(() => {
-    let alive = true;
+    loadMenu();
+  }, [loadMenu]);
 
-    (async () => {
-      try {
-        const data = await fetchMenu();
-        if (alive) setMenu(data.items || []);
-      } catch (e) {
-        setError(e.message || "Failed to load menu");
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, [setError]);
-
-  // ✅ Realtime registration (store id)
+  // ✅ Realtime registration uses TabContext.refresh() with mutation gating
   useEffect(() => {
     if (!table?.id) return;
 
     const id = rt.registerGuest({
       tableId: table.id,
       reloadTab: async () => {
-        if (addingRef.current) return;
-        await silentReload();
+        // Prevent “stale reload fights” while user is mutating cart or sending ticket
+        if (isMutatingRef?.current) return;
+        await refresh();
       },
       reloadTickets: loadTickets,
       reloadServices: loadRequests,
+      reloadMenu: () => loadMenu(),
     });
 
     return () => rt.unregisterGuest(id);
-  }, [rt, table?.id, silentReload, loadTickets, loadRequests]);
+  }, [rt, table?.id, refresh, isMutatingRef, loadTickets, loadRequests, loadMenu]);
 
+  // ✅ Add item uses TabContext action (authoritative server replace inside provider)
   async function handleAdd(menuItemId, qty = 1) {
-    setError("");
-    if (addingRef.current) return;
-
-    addingRef.current = true;
-
-    const before = tab ? JSON.parse(JSON.stringify(tab)) : null;
-
+    clearError?.();
     try {
-      const t = await ensureTabOpen();
-
-      const mi = menu.find((x) => String(x._id) === String(menuItemId));
-      if (mi) {
-        setTab((prev) => optimisticAddToTab(prev || t, { menuItem: mi, qty }));
-        setCartOpen(true);
-      }
-
-      const data = await addItemToTab(t._id, menuItemId, qty);
-
-      setTab(data.tab);
+      await addItem(menuItemId, qty);
       setCartOpen(true);
     } catch (e) {
-      if (before) setTab(before);
-      setError(e.message || "Failed to add item");
-    } finally {
-      addingRef.current = false;
+      // error is usually set inside provider, but keep safe fallback
+      console.warn(e);
     }
   }
 
   const itemCount = useMemo(() => {
-    return (tab?.items || []).reduce((sum, it) => sum + it.qty, 0);
-  }, [tab]);
+    return (tab?.items || []).reduce((sum, it) => sum + (it.qty || 0), 0);
+  }, [tab?.items]);
 
   const isClosedSession =
     tab?.status === "CLOSED" || (!tab && table?.status === "FREE");
@@ -183,7 +154,9 @@ export default function TableGuestPage() {
     };
   }, [isClosedSession, navigate]);
 
-  if (loading && !table) return <div className="p-6">Connecting to table…</div>;
+  if (status === "loading" && !table) {
+    return <div className="p-6">Connecting to table…</div>;
+  }
 
   if (isClosedSession) {
     return (
@@ -213,7 +186,6 @@ export default function TableGuestPage() {
         onOpenCart={() => setCartOpen(true)}
       />
 
-      {/* Static upper section */}
       <div className="mx-auto w-full max-w-4xl px-4 pt-4 space-y-6">
         <div className="animate-[fadeIn_.2s_ease-out]">
           <OrderStatusPanel tickets={tickets} />
@@ -235,16 +207,14 @@ export default function TableGuestPage() {
         </div>
       </div>
 
-      {/* Scrollable menu section */}
       <div className="flex-1 overflow-hidden">
         <div className="mx-auto h-full w-full max-w-4xl px-4">
           <div className="animate-[fadeIn_.3s_ease-out] h-full">
-            <MenuPanel menu={menu} onAdd={handleAdd} />
+            <MenuPanel menu={menuItems} onAdd={handleAdd} />
           </div>
         </div>
       </div>
 
-      {/* Floating service button */}
       <button
         type="button"
         onClick={() => setServiceModalOpen(true)}
@@ -254,13 +224,8 @@ export default function TableGuestPage() {
         <Bell className="h-6 w-6" />
       </button>
 
-      <CartDrawer
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-        tab={tab}
-        setTab={setTab}
-        setError={setError}
-      />
+      {/* ✅ CartDrawer no longer receives tab/setTab/setError/sendingRef */}
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
 
       <TabSummaryCard
         tab={tab}
@@ -272,7 +237,12 @@ export default function TableGuestPage() {
         open={serviceModalOpen}
         onClose={() => setServiceModalOpen(false)}
         tableId={table?.id}
-        ensureTabOpen={ensureTabOpen}
+        // If your modal needs ensureTabOpen, TabContext should provide ensureTabOpen().
+        // For now, keep it simple: refresh() guarantees you have a tab.
+        ensureTabOpen={async () => {
+          await refresh();
+          return tab; // provider should ideally return the latest tab
+        }}
       />
     </div>
   );

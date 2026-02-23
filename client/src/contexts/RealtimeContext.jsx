@@ -26,15 +26,19 @@ export function RealtimeProvider({ children }) {
   const guests = useRef(new Map()); // id -> { tableId, reloadTab, reloadTickets }
   const staffs = useRef(new Map()); // id -> { reloadTickets, reloadServices, reloadTables }
 
+  
+
   const api = useMemo(() => {
     return {
-      registerGuest({ tableId, reloadTab, reloadTickets,reloadServices }) {
+      registerGuest({ tableId, reloadTab, reloadTickets, reloadServices, reloadMenu }) {
+
         const id = randomId();
         guests.current.set(id, {
           tableId: tableId || null,
           reloadTab: reloadTab || null,
           reloadTickets: reloadTickets || null,
           reloadServices: reloadServices || null,
+          reloadMenu: reloadMenu || null,
         });
 
         if (socket.connected && tableId) {
@@ -49,12 +53,13 @@ export function RealtimeProvider({ children }) {
         guests.current.delete(id);
       },
 
-      registerStaff({ reloadTickets, reloadServices, reloadTables }) {
+      registerStaff({ reloadTickets, reloadServices, reloadTables,reloadMenu }) {
         const id = randomId();
         staffs.current.set(id, {
           reloadTickets: reloadTickets || null,
           reloadServices: reloadServices || null,
           reloadTables: reloadTables || null,
+          reloadMenu: reloadMenu || null,
         });
 
         if (socket.connected) {
@@ -91,6 +96,23 @@ export function RealtimeProvider({ children }) {
         if (g.tableId) socket.emit("table:join", { tableId: g.tableId });
       }
     };
+
+    const runGuestMenu = () => {
+  for (const [id, g] of guests.current.entries()) {
+    if (g.reloadMenu) debounced(`guest:${id}:menu`, g.reloadMenu, 180);
+  }
+};
+
+const runStaffMenu = () => {
+  for (const [id, s] of staffs.current.entries()) {
+    if (s.reloadMenu) debounced(`staff:${id}:menu`, s.reloadMenu, 180);
+  }
+};
+
+const runMenuAll = () => {
+  runGuestMenu();
+  runStaffMenu();
+};
 
     const runGuestTickets = () => {
       for (const [id, g] of guests.current.entries()) {
@@ -144,7 +166,10 @@ export function RealtimeProvider({ children }) {
     socket.on("tab:updated", onTabUpdated);
 
     socket.on("service:created", runGuestServices);
-socket.on("service:updated", runGuestServices);
+    socket.on("service:updated", runGuestServices);
+    
+    socket.on("menu:updated", runMenuAll);
+
 
     // ---------- Staff events ----------
     socket.on("ticket:new", runStaffTickets);
@@ -165,6 +190,8 @@ socket.on("reservations:updated", runStaffTables);
 
     return () => {
       socket.off("connect", joinRooms);
+
+      socket.off("menu:updated", runMenuAll);
 
       socket.off("ticket:created", runGuestTickets);
       socket.off("ticket:updated", runGuestTickets);

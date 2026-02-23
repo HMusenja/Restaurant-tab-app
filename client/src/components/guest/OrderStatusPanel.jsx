@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState,useEffect } from "react";
 import { Clock, ChefHat, Bell, CheckCircle2 } from "lucide-react";
 
 function formatTime(iso) {
@@ -57,7 +57,12 @@ export default function OrderStatusPanel({
 }) {
   const [showCompleted, setShowCompleted] = useState(false);
 
-  const now = Date.now();
+  const [now, setNow] = useState(Date.now());
+  
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(t)
+  },[])
 
   const { visibleTickets, hiddenCount } = useMemo(() => {
     const cutoffMs = hideDoneAfterMinutes * 60 * 1000;

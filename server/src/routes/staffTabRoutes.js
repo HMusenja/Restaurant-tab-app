@@ -1,11 +1,12 @@
 import express from "express";
-import { closeTab,payTab,getTab } from "../controllers/staffTabController.js";
+import { protect } from "../middleware/authMiddleware.js";
+import { closeTab,payTab,getTab,getTabForStaff } from "../controllers/staffTabController.js";
 
 const router = express.Router();
 
-console.log("✅ staffTabRoutes loaded");
 
-router.get("/staff/tabs/:tabId", getTab);
+
+router.get("/staff/tabs/:tabId",getTabForStaff);
 router.post("/staff/tabs/:tabId/pay", payTab);
 router.post("/staff/tabs/:tabId/close", closeTab);
 
