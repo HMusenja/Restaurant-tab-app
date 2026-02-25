@@ -1,3 +1,4 @@
+// src/components/admin/UserDetailModal.jsx
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -11,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { adminCardClass, adminInputClass, adminPanelClass } from "@/lib/adminUi";
 
 const ROLES = ["Reception", "Kitchen", "Bar", "admin"];
 
@@ -18,24 +21,19 @@ export default function UserDetailModal({
   open,
   onOpenChange,
   user,
-  onSave, // (id, payload) => Promise
-  onToggleActive, // (id) => Promise
-  onResetPassword, // (id) => Promise -> should return { tempPassword? }
+  onSave,
+  onToggleActive,
+  onResetPassword,
   onSoftDelete,
   onRestore,
-  currentAdminId, // optional: prevent disabling yourself
+  currentAdminId,
 }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    role: "Reception",
-  });
+  const [form, setForm] = useState({ name: "", email: "", role: "Reception" });
 
-  // keep local form synced when selecting a different user
   useEffect(() => {
     if (!user) return;
     setForm({
@@ -62,6 +60,13 @@ export default function UserDetailModal({
   }, [form, dirty]);
 
   const isSelf = Boolean(currentAdminId && user?._id === currentAdminId);
+  const isDeleted = Boolean(user?.isDeleted || user?.deletedAt);
+  const isActive =
+    typeof user?.isActive === "boolean"
+      ? user.isActive
+      : typeof user?.active === "boolean"
+        ? user.active
+        : true;
 
   const handleSave = async () => {
     if (!user?._id) return;
@@ -75,9 +80,7 @@ export default function UserDetailModal({
       toast.success("User updated");
       onOpenChange(false);
     } catch (err) {
-      toast.error(
-        err?.response?.data?.message || err?.message || "Update failed",
-      );
+      toast.error(err?.response?.data?.message || err?.message || "Update failed");
     } finally {
       setIsSaving(false);
     }
@@ -95,11 +98,7 @@ export default function UserDetailModal({
       toast.success("User status updated");
       onOpenChange(false);
     } catch (err) {
-      toast.error(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to update status",
-      );
+      toast.error(err?.response?.data?.message || err?.message || "Failed to update status");
     } finally {
       setIsToggling(false);
     }
@@ -112,7 +111,6 @@ export default function UserDetailModal({
       const res = await onResetPassword(user._id);
       toast.success("Password reset");
 
-      // If your backend returns a temp password, surface it
       if (res?.tempPassword) {
         try {
           await navigator.clipboard.writeText(res.tempPassword);
@@ -122,16 +120,13 @@ export default function UserDetailModal({
         }
       } else {
         toast.message("Password reset complete", {
-          description:
-            "If you return a tempPassword from the API, we can show/copy it here.",
+          description: "If the API returns tempPassword, we can show/copy it here.",
         });
       }
 
       onOpenChange(false);
     } catch (err) {
-      toast.error(
-        err?.response?.data?.message || err?.message || "Password reset failed",
-      );
+      toast.error(err?.response?.data?.message || err?.message || "Password reset failed");
     } finally {
       setIsResetting(false);
     }
@@ -139,67 +134,73 @@ export default function UserDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className={cn(adminCardClass("sm:max-w-lg p-5"))}>
         <DialogHeader>
-          <DialogTitle>User Details</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[hsl(40,20%,95%)]">User Details</DialogTitle>
+          <DialogDescription className="text-[hsl(40,10%,60%)]">
             View and manage this staff account.
           </DialogDescription>
         </DialogHeader>
 
         {!user ? (
-          <div className="text-sm text-muted-foreground">No user selected.</div>
+          <div className="text-sm text-[hsl(40,10%,60%)]">No user selected.</div>
         ) : (
           <div className="space-y-5">
             {/* Quick meta */}
-            <div className="rounded-xl border p-3">
-              <div className="text-sm font-medium">{user.name}</div>
-              <div className="text-xs text-muted-foreground">{user.email}</div>
+            <div className={cn(adminPanelClass(), "p-3")}>
+              <div className="text-sm font-medium text-[hsl(40,20%,92%)]">{user.name || "—"}</div>
+              <div className="text-xs text-[hsl(40,10%,60%)]">{user.email || "—"}</div>
+
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                <span className="px-2 py-1 rounded-full bg-secondary">
-                  Role: {user.role}
+                <span className="px-2 py-1 rounded-full bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)] border border-[hsl(40,20%,95%)/10%]">
+                  Role: {user.role || "—"}
                 </span>
-                <span className="px-2 py-1 rounded-full bg-secondary">
-                  Status: {user.isActive ? "Active" : "Disabled"}
+                <span className="px-2 py-1 rounded-full bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)] border border-[hsl(40,20%,95%)/10%]">
+                  Status: {isActive ? "Active" : "Disabled"}
                 </span>
-                <span className="px-2 py-1 rounded-full bg-secondary">
-                  Must change password: {user.mustChangePassword ? "Yes" : "No"}
+                <span className="px-2 py-1 rounded-full bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)] border border-[hsl(40,20%,95%)/10%]">
+                  Must change PW: {user.mustChangePassword ? "Yes" : "No"}
                 </span>
+                {isDeleted ? (
+                  <span className="px-2 py-1 rounded-full bg-[hsl(0,0%,100%)/6%] text-[hsl(40,10%,60%)] border border-[hsl(40,20%,95%)/10%]">
+                    Deleted
+                  </span>
+                ) : null}
               </div>
             </div>
 
-            {/* Editable fields */}
+            {/* Editable */}
             <div className="space-y-2">
-              <Label htmlFor="ud-name">Name</Label>
+              <Label htmlFor="ud-name" className="text-[hsl(40,20%,85%)]">
+                Name
+              </Label>
               <Input
                 id="ud-name"
                 value={form.name}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, name: e.target.value }))
-                }
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                className={adminInputClass()}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ud-email">Email</Label>
+              <Label htmlFor="ud-email" className="text-[hsl(40,20%,85%)]">
+                Email
+              </Label>
               <Input
                 id="ud-email"
                 type="email"
                 value={form.email}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, email: e.target.value }))
-                }
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                className={adminInputClass()}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Role</Label>
+              <Label className="text-[hsl(40,20%,85%)]">Role</Label>
               <select
-                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className={cn(adminInputClass(), "pr-8 appearance-none")}
                 value={form.role}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, role: e.target.value }))
-                }
+                onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
               >
                 {ROLES.map((r) => (
                   <option key={r} value={r}>
@@ -209,70 +210,56 @@ export default function UserDetailModal({
               </select>
             </div>
 
-            
             {/* Actions */}
             <div className="space-y-4 pt-2">
-              {/* Primary actions */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={handleResetPassword}
                   disabled={isResetting}
+                  className="rounded-2xl"
                 >
                   {isResetting ? "Resetting..." : "Reset PW"}
                 </Button>
 
                 <Button
                   type="button"
-                  variant={user.isActive ? "destructive" : "default"}
+                  variant={isActive ? "destructive" : "default"}
                   onClick={handleToggle}
                   disabled={isToggling}
+                  className="rounded-2xl"
                   title={isSelf ? "You can't disable yourself" : undefined}
                 >
-                  {user.isActive
-                    ? isToggling
-                      ? "Disabling..."
-                      : "Disable"
-                    : isToggling
-                      ? "Enabling..."
-                      : "Enable"}
+                  {isActive ? (isToggling ? "Disabling..." : "Disable") : isToggling ? "Enabling..." : "Enable"}
                 </Button>
 
-                <Button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={!canSave || isSaving}
-                >
+                <Button type="button" onClick={handleSave} disabled={!canSave || isSaving} className="rounded-2xl">
                   {isSaving ? "Saving..." : "Save"}
                 </Button>
               </div>
 
               {/* Danger zone */}
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3">
-                <div className="text-sm font-medium">Danger zone</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Soft-delete hides the user and disables login. You can restore
-                  later.
+              <div className="rounded-2xl border border-destructive/25 bg-destructive/5 p-3">
+                <div className="text-sm font-medium text-[hsl(40,20%,92%)]">Danger zone</div>
+                <div className="text-xs text-[hsl(40,10%,60%)] mt-1">
+                  Soft-delete hides the user and disables login. You can restore later.
                 </div>
 
                 <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:justify-end">
-                  {/* Restore only when deleted */}
-                  {user.isDeleted ? (
+                  {isDeleted ? (
                     <Button
                       type="button"
-                      variant="default"
                       onClick={async () => {
                         try {
                           await onRestore(user._id);
                           toast.success("User restored");
                           onOpenChange(false);
                         } catch (err) {
-                          toast.error(
-                            err?.response?.data?.message || "Restore failed",
-                          );
+                          toast.error(err?.response?.data?.message || "Restore failed");
                         }
                       }}
+                      className="rounded-2xl"
                     >
                       Restore user
                     </Button>
@@ -281,6 +268,7 @@ export default function UserDetailModal({
                       type="button"
                       variant="destructive"
                       disabled={isSelf || user.role === "admin"}
+                      className="rounded-2xl"
                       onClick={async () => {
                         if (!confirm(`Soft-delete ${user.name}?`)) return;
                         try {
@@ -288,9 +276,7 @@ export default function UserDetailModal({
                           toast.success("User deleted");
                           onOpenChange(false);
                         } catch (err) {
-                          toast.error(
-                            err?.response?.data?.message || "Delete failed",
-                          );
+                          toast.error(err?.response?.data?.message || "Delete failed");
                         }
                       }}
                     >
@@ -298,12 +284,9 @@ export default function UserDetailModal({
                     </Button>
                   )}
 
-                  {/* Explain disabled states */}
-                  {(isSelf || user.role === "admin") && !user.isDeleted && (
-                    <div className="text-xs text-muted-foreground self-center sm:ml-2">
-                      {isSelf
-                        ? "You can’t delete your own account."
-                        : "Admin accounts can’t be deleted."}
+                  {(isSelf || user.role === "admin") && !isDeleted && (
+                    <div className="text-xs text-[hsl(40,10%,60%)] self-center sm:ml-2">
+                      {isSelf ? "You can’t delete your own account." : "Admin accounts can’t be deleted."}
                     </div>
                   )}
                 </div>
@@ -312,12 +295,8 @@ export default function UserDetailModal({
           </div>
         )}
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => onOpenChange(false)}
-          >
+        <DialogFooter className="pt-2">
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} className="rounded-2xl w-full sm:w-auto">
             Close
           </Button>
         </DialogFooter>

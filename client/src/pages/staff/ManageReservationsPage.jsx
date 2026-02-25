@@ -75,20 +75,90 @@ function pad2(n) {
   return String(n).padStart(2, "0");
 }
 
+function glassInputClass(extra = "") {
+  return cn(
+    // structure
+    "w-full h-11 rounded-2xl px-4 text-sm transition-all duration-200",
+
+    // elevated charcoal surface
+    "bg-[hsl(222,18%,14%)]",
+
+    // subtle refined border
+    "border border-[hsl(40,30%,85%)/14%]",
+
+    // warm readable text
+    "text-[hsl(40,30%,94%)]",
+
+    // elegant placeholder
+    "placeholder:text-[hsl(40,15%,60%)]",
+
+    // premium focus
+    "focus:outline-none",
+    "focus:border-[hsl(38,90%,55%)/70%]",
+    "focus:ring-2 focus:ring-[hsl(38,90%,55%)/30%]",
+
+    // hover lift
+    "hover:border-[hsl(40,30%,85%)/22%]",
+
+    extra
+  );
+}
+
+
+function glassCardClass(extra = "") {
+  return cn(
+    "relative overflow-hidden rounded-2xl",
+
+    // deep luxury surface
+    "bg-[hsl(222,18%,9%)]",
+
+    // refined border
+    "border border-[hsl(40,30%,85%)/12%]",
+
+    // strong depth shadow
+    "shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)]",
+
+    extra
+  );
+}
+
+
 function statusBadgeClass(status) {
   const s = String(status).toUpperCase();
-  if (s === "SEATED") return "bg-primary/20 text-primary";
-  if (s === "BOOKED") return "bg-warning/20 text-warning";
-  if (s === "CANCELLED") return "bg-destructive/15 text-destructive";
-  if (s === "NO_SHOW") return "bg-muted text-muted-foreground";
-  return "bg-muted text-muted-foreground";
+  if (s === "SEATED") return "bg-primary/10 border-primary/20 text-primary";
+  if (s === "BOOKED") return "bg-warning/10 border-warning/20 text-warning";
+  if (s === "CANCELLED")
+    return "bg-destructive/10 border-destructive/20 text-destructive";
+  if (s === "NO_SHOW")
+    return "bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]";
+  return "bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]";
 }
 
 function timePillClass(kind) {
-  if (kind === "upcoming") return "bg-warning/15 text-warning";
-  if (kind === "late") return "bg-destructive/10 text-destructive";
-  if (kind === "overdue") return "bg-destructive/15 text-destructive";
+  if (kind === "upcoming")
+    return "bg-warning/10 border-warning/20 text-warning";
+  if (kind === "late")
+    return "bg-destructive/10 border-destructive/20 text-destructive";
+  if (kind === "overdue")
+    return "bg-destructive/10 border-destructive/20 text-destructive";
   return "hidden";
+}
+
+function Pill({ active, children, onClick, className }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-4 py-2 rounded-full text-sm font-medium transition-all capitalize whitespace-nowrap border",
+        active
+          ? "bg-primary/20 text-[hsl(40,20%,95%)] border-primary/25"
+          : "bg-[hsl(40,20%,95%)/4%] text-[hsl(40,10%,70%)] border-[hsl(40,20%,95%)/10%] hover:bg-[hsl(40,20%,95%)/6%]",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -97,26 +167,44 @@ function timePillClass(kind) {
 
 function PageHeader({ onBack, onRefresh, refreshing, onCreate }) {
   return (
-    <div className="flex items-center gap-3">
-      <Button variant="ghost" size="icon" onClick={onBack}>
+    <div className="flex items-start gap-3">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onBack}
+        className="rounded-2xl hover:bg-[hsl(40,20%,95%)/8%]"
+      >
         <ArrowLeft className="w-5 h-5" />
       </Button>
 
-      <div className="flex-1">
-        <h1 className="text-2xl font-bold">Reservations</h1>
-        <div className="text-sm text-muted-foreground">
+      <div className="flex-1 min-w-0">
+        <div className="text-xs tracking-[0.28em] uppercase text-primary/70">
+          AfroAsiatique
+        </div>
+        <h1 className="text-lg md:text-2xl font-bold tracking-tight text-[hsl(40,20%,95%)]">
+          Reservations
+        </h1>
+        <div className="text-xs md:text-sm text-[hsl(40,10%,60%)]">
           Manage bookings across all tables • Seat, edit, and cancel
         </div>
       </div>
 
-      <Button variant="ghost" size="icon" onClick={onRefresh} title="Refresh">
-        <RefreshCw className={cn("w-5 h-5", refreshing && "animate-spin")} />
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onRefresh}
+          title="Refresh"
+          className="rounded-2xl hover:bg-[hsl(40,20%,95%)/8%]"
+        >
+          <RefreshCw className={cn("w-5 h-5", refreshing && "animate-spin")} />
+        </Button>
 
-      <Button onClick={onCreate}>
-        <Plus className="w-4 h-4 mr-2" />
-        Create
-      </Button>
+        <Button onClick={onCreate} className="rounded-2xl">
+          <Plus className="w-4 h-4 mr-2" />
+          Create
+        </Button>
+      </div>
     </div>
   );
 }
@@ -124,7 +212,7 @@ function PageHeader({ onBack, onRefresh, refreshing, onCreate }) {
 function ErrorBanner({ error }) {
   if (!error) return null;
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+    <div className="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
       {error}
     </div>
   );
@@ -133,23 +221,40 @@ function ErrorBanner({ error }) {
 function StatsStrip({ stats }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-      <div className="rounded-lg border border-warning/20 bg-warning/5 px-3 py-2">
-        <div className="text-xs text-muted-foreground">Booked</div>
-        <div className="text-lg font-semibold text-warning">{stats.BOOKED}</div>
+      <div className="rounded-2xl border border-warning/20 bg-warning/10 px-3 py-2">
+        <div className="text-[11px] tracking-[0.18em] uppercase text-[hsl(40,10%,60%)]">
+          Booked
+        </div>
+        <div className="text-lg font-semibold text-warning tabular-nums">
+          {stats.BOOKED}
+        </div>
       </div>
-      <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
-        <div className="text-xs text-muted-foreground">Seated</div>
-        <div className="text-lg font-semibold text-primary">{stats.SEATED}</div>
+
+      <div className="rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2">
+        <div className="text-[11px] tracking-[0.18em] uppercase text-[hsl(40,10%,60%)]">
+          Seated
+        </div>
+        <div className="text-lg font-semibold text-primary tabular-nums">
+          {stats.SEATED}
+        </div>
       </div>
-      <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2">
-        <div className="text-xs text-muted-foreground">Cancelled</div>
-        <div className="text-lg font-semibold text-destructive">
+
+      <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2">
+        <div className="text-[11px] tracking-[0.18em] uppercase text-[hsl(40,10%,60%)]">
+          Cancelled
+        </div>
+        <div className="text-lg font-semibold text-destructive tabular-nums">
           {stats.CANCELLED}
         </div>
       </div>
-      <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-        <div className="text-xs text-muted-foreground">No-show</div>
-        <div className="text-lg font-semibold">{stats.NO_SHOW}</div>
+
+      <div className="rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] px-3 py-2">
+        <div className="text-[11px] tracking-[0.18em] uppercase text-[hsl(40,10%,60%)]">
+          No-show
+        </div>
+        <div className="text-lg font-semibold tabular-nums text-[hsl(40,20%,92%)]">
+          {stats.NO_SHOW}
+        </div>
       </div>
     </div>
   );
@@ -168,15 +273,22 @@ function StickyControls({
   stats,
 }) {
   return (
-    <Card className="sticky top-2  border-border/60 bg-background/80 backdrop-blur">
+    <Card className={cn(glassCardClass(), "sticky top-2 z-10")}>
       <CardContent className="p-3 space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center gap-3">
+        {/* Row A */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2 flex-wrap">
-            <CalendarDays className="w-4 h-4 text-muted-foreground" />
+            <span className="inline-flex items-center gap-2 text-xs text-[hsl(40,10%,60%)]">
+              <CalendarDays className="w-4 h-4 text-primary/80" />
+              <span className="tracking-[0.18em] uppercase">Scope</span>
+            </span>
 
             <input
               type="date"
-              className="rounded-md border bg-background px-3 py-2 text-sm"
+              className={cn(
+                glassInputClass("w-[160px]"),
+                "appearance-none opacity-100",
+              )}
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               disabled={scope !== "day"}
@@ -188,7 +300,9 @@ function StickyControls({
             />
 
             <Select value={scope} onValueChange={setScope}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger
+                className={cn(glassInputClass("w-[150px] py-0"), "h-10")}
+              >
                 <SelectValue placeholder="Scope" />
               </SelectTrigger>
               <SelectContent>
@@ -200,28 +314,20 @@ function StickyControls({
               </SelectContent>
             </Select>
 
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant={
-                  selectedDate === ymdLocal() && scope === "day"
-                    ? "default"
-                    : "secondary"
-                }
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <Pill
+                active={selectedDate === ymdLocal() && scope === "day"}
                 onClick={() => {
                   setScope("day");
                   setSelectedDate(ymdLocal());
                 }}
               >
                 Today
-              </Button>
+              </Pill>
 
-              <Button
-                size="sm"
-                variant={
+              <Pill
+                active={
                   selectedDate === addDaysYMD(ymdLocal(), 1) && scope === "day"
-                    ? "default"
-                    : "secondary"
                 }
                 onClick={() => {
                   setScope("day");
@@ -229,31 +335,30 @@ function StickyControls({
                 }}
               >
                 Tomorrow
-              </Button>
+              </Pill>
 
-              <Button
-                size="sm"
-                variant={scope === "next7" ? "default" : "secondary"}
+              <Pill
+                active={scope === "next7"}
                 onClick={() => setScope("next7")}
               >
                 Next 7
-              </Button>
+              </Pill>
 
-              <Button
-                size="sm"
-                variant={scope === "next30" ? "default" : "secondary"}
+              <Pill
+                active={scope === "next30"}
                 onClick={() => setScope("next30")}
               >
                 Next 30
-              </Button>
+              </Pill>
             </div>
           </div>
 
-          <div className="flex-1 flex items-center gap-2">
+          {/* Row B */}
+          <div className="flex w-full lg:w-[520px] items-center gap-2">
             <div className="relative w-full">
-              <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-[hsl(40,10%,60%)] absolute left-3 top-3" />
               <input
-                className="w-full rounded-md border bg-background pl-9 pr-3 py-2 text-sm"
+                className={glassInputClass("w-full pl-9")}
                 placeholder="Search by name, phone, table…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -261,7 +366,9 @@ function StickyControls({
             </div>
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger
+                className={cn(glassInputClass("w-[150px] py-0"), "h-10")}
+              >
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -290,12 +397,19 @@ function ReservationsList({
   renderRow,
 }) {
   return (
-    <Card className="border-border/60">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center justify-between">
-          <span>{headerLabel}</span>
+    <Card className={glassCardClass()}>
+      <div className="pointer-events-none absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
 
-          <Button size="sm" variant="ghost" onClick={onRefresh}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center justify-between gap-3">
+          <span className="text-[hsl(40,20%,95%)]">{headerLabel}</span>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onRefresh}
+            className="rounded-2xl hover:bg-[hsl(40,20%,95%)/8%]"
+          >
             <RefreshCw
               className={cn("w-4 h-4 mr-1", refreshing && "animate-spin")}
             />
@@ -306,11 +420,11 @@ function ReservationsList({
 
       <CardContent className="space-y-2">
         {loading ? (
-          <div className="py-10 text-sm text-muted-foreground">
+          <div className="py-10 text-sm text-[hsl(40,10%,60%)]">
             Loading reservations…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="py-10 text-sm text-muted-foreground">
+          <div className="py-10 text-sm text-[hsl(40,10%,60%)]">
             No reservations match your filters.
           </div>
         ) : (
@@ -349,70 +463,85 @@ function ReservationRow({
         }
       }}
       className={cn(
-        "w-full rounded-xl border px-3 py-3 transition outline-none",
+        "w-full rounded-2xl border px-3 py-3 transition outline-none",
         "cursor-pointer select-none",
         selectedRow
-          ? "border-primary/50 bg-primary/5"
-          : "border-border/60 hover:bg-muted/40",
-        "focus-visible:ring-2 focus-visible:ring-primary/40",
+  ? "border-primary/40 bg-[hsl(38,90%,55%)/12%]"
+  : "border-[hsl(40,30%,85%)/12%] bg-[hsl(222,18%,13%)] hover:bg-[hsl(222,18%,16%)]"
+
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
+          {/* top line: date/time/status/table */}
           <div className="flex items-center gap-2 flex-wrap">
             {scope !== "day" ? (
-              <Badge variant="secondary" className="text-xs">
+              <Badge className="rounded-full bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)] text-xs">
                 {formatDate(r.reservedFor)}
               </Badge>
             ) : null}
 
-            <div className="text-base font-semibold tabular-nums">
+            <div className="text-base font-semibold tabular-nums text-[hsl(40,20%,95%)]">
               {formatTime(r.reservedFor)}
             </div>
 
-            <Badge className={cn("capitalize", statusBadgeClass(r.status))}>
-              {r.status.toLowerCase().replace("_", " ")}
-            </Badge>
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                statusBadgeClass(r.status),
+              )}
+            >
+              {String(r.status).toLowerCase().replace("_", " ")}
+            </span>
 
-            <Badge variant="secondary" className="text-xs">
+            <Badge className="rounded-full bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)] text-xs">
               {r.tableNumber != null
                 ? `Table ${pad2(r.tableNumber)}`
                 : "Table —"}
             </Badge>
 
             {tSig.kind !== "none" ? (
-              <Badge className={cn("text-xs", timePillClass(tSig.kind))}>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                  timePillClass(tSig.kind),
+                )}
+              >
                 {tSig.label}
-              </Badge>
+              </span>
             ) : null}
           </div>
 
+          {/* second line: name + party */}
           <div className="mt-1 flex items-center gap-2 text-sm">
-            <span className="font-medium truncate">{r.name}</span>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-muted-foreground flex items-center gap-1">
+            <span className="font-semibold truncate text-[hsl(40,20%,95%)]">
+              {r.name}
+            </span>
+            <span className="text-[hsl(40,10%,55%)]">•</span>
+            <span className="text-[hsl(40,10%,70%)] inline-flex items-center gap-1">
               <Users className="w-3.5 h-3.5" />
               {r.partySize}
             </span>
           </div>
 
-          <div className="mt-1 text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-            <span className="flex items-center gap-1">
+          {/* third line: phone + notes + occupied */}
+          <div className="mt-1 text-xs text-[hsl(40,10%,60%)] flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1">
               <Phone className="w-3.5 h-3.5" />
               {r.phone || "—"}
             </span>
 
             {r.notes ? (
               <>
-                <span className="text-muted-foreground">•</span>
+                <span className="text-[hsl(40,10%,55%)]">•</span>
                 <span className="truncate">📝 Notes</span>
               </>
             ) : null}
 
             {occupied ? (
               <>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-destructive flex items-center gap-1">
+                <span className="text-[hsl(40,10%,55%)]">•</span>
+                <span className="text-destructive inline-flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   Table occupied
                 </span>
@@ -421,9 +550,11 @@ function ReservationRow({
           </div>
         </div>
 
+        {/* actions */}
         <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
+            className="rounded-xl h-9"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -445,6 +576,7 @@ function ReservationRow({
           <Button
             size="icon"
             variant="secondary"
+            className="rounded-xl h-9 w-9 bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] hover:bg-[hsl(40,20%,95%)/10%]"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -458,6 +590,7 @@ function ReservationRow({
           <Button
             size="icon"
             variant="ghost"
+            className="rounded-xl h-9 w-9 hover:bg-[hsl(40,20%,95%)/8%]"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -489,7 +622,7 @@ function DetailPanel({
 }) {
   if (!selected || !editForm) {
     return (
-      <div className="text-sm text-muted-foreground p-4">
+      <div className="text-sm text-[hsl(40,10%,60%)] p-4">
         Select a reservation to view details.
       </div>
     );
@@ -504,38 +637,44 @@ function DetailPanel({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="text-lg font-semibold">
+              <div className="text-lg font-semibold text-[hsl(40,20%,95%)]">
                 {editForm.name || "Reservation"}
               </div>
-              <Badge className={cn("capitalize", statusBadgeClass(selected.status))}>
+
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                  statusBadgeClass(selected.status),
+                )}
+              >
                 {selected.status.toLowerCase().replace("_", " ")}
-              </Badge>
+              </span>
             </div>
 
-            <div className="mt-1 text-sm text-muted-foreground flex flex-wrap items-center gap-2">
+            <div className="mt-1 text-sm text-[hsl(40,10%,60%)] flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1">
-                <CalendarDays className="w-4 h-4" />
+                <CalendarDays className="w-4 h-4 text-primary/80" />
                 {formatDate(selected.reservedFor)}
               </span>
 
-              <span className="text-muted-foreground">•</span>
+              <span className="text-[hsl(40,10%,55%)]">•</span>
 
               <span className="inline-flex items-center gap-1 tabular-nums">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-4 h-4 text-primary/80" />
                 {formatTime(selected.reservedFor)}
               </span>
 
-              <span className="text-muted-foreground">•</span>
+              <span className="text-[hsl(40,10%,55%)]">•</span>
 
               <span className="inline-flex items-center gap-1">
-                <Users className="w-4 h-4" />
+                <Users className="w-4 h-4 text-primary/80" />
                 {selected.partySize}
               </span>
 
               {scope !== "day" ? (
                 <>
-                  <span className="text-muted-foreground">•</span>
-                  <Badge variant="secondary" className="text-xs">
+                  <span className="text-[hsl(40,10%,55%)]">•</span>
+                  <Badge className="rounded-full bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)] text-xs">
                     Range view
                   </Badge>
                 </>
@@ -543,32 +682,41 @@ function DetailPanel({
 
               {tSig.kind !== "none" ? (
                 <>
-                  <span className="text-muted-foreground">•</span>
-                  <Badge className={cn("text-xs", timePillClass(tSig.kind))}>
+                  <span className="text-[hsl(40,10%,55%)]">•</span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                      timePillClass(tSig.kind),
+                    )}
+                  >
                     {tSig.label}
-                  </Badge>
+                  </span>
                 </>
               ) : null}
             </div>
           </div>
 
-          <Badge variant="secondary" className="text-xs shrink-0">
-            {selected.tableNumber != null ? `Table ${pad2(selected.tableNumber)}` : "Table —"}
+          <Badge className="rounded-full bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)] text-xs shrink-0">
+            {selected.tableNumber != null
+              ? `Table ${pad2(selected.tableNumber)}`
+              : "Table —"}
           </Badge>
         </div>
 
         {occupied ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <div className="rounded-2xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              Table is currently occupied — seating from here will fail until the table is freed.
+              Table is currently occupied — seating from here will fail until
+              the table is freed.
             </div>
           </div>
         ) : null}
 
         {selected.status !== "BOOKED" ? (
-          <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm text-muted-foreground">
-            Only <span className="font-medium">BOOKED</span> reservations can be edited or cancelled.
+          <div className="rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] p-3 text-sm text-[hsl(40,10%,70%)]">
+            Only <span className="font-medium">BOOKED</span> reservations can be
+            edited or cancelled.
           </div>
         ) : null}
 
@@ -576,43 +724,55 @@ function DetailPanel({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Date</label>
+              <label className="text-xs text-[hsl(40,10%,60%)]">Date</label>
               <input
                 type="date"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+               className={glassInputClass()}
+
                 value={editForm.date}
-                onChange={(e) => setEditForm((p) => ({ ...p, date: e.target.value }))}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, date: e.target.value }))
+                }
                 disabled={selected.status !== "BOOKED"}
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Time</label>
+              <label className="text-xs text-[hsl(40,10%,60%)]">Time</label>
               <input
                 type="time"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+               className={glassInputClass()}
+
                 value={editForm.time}
-                onChange={(e) => setEditForm((p) => ({ ...p, time: e.target.value }))}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, time: e.target.value }))
+                }
                 disabled={selected.status !== "BOOKED"}
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">Table</label>
+            <label className="text-xs text-[hsl(40,10%,60%)]">Table</label>
             <Select
               value={editForm.tableId}
               onValueChange={(v) => setEditForm((p) => ({ ...p, tableId: v }))}
               disabled={selected.status !== "BOOKED" || loadingTables}
             >
-              <SelectTrigger>
-                <SelectValue placeholder={loadingTables ? "Loading tables…" : "Select a table"} />
+              <SelectTrigger className="rounded-2xl border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] text-[hsl(40,20%,92%)]">
+                <SelectValue
+                  placeholder={
+                    loadingTables ? "Loading tables…" : "Select a table"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {tables.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
                     {t.label}
-                    {String(t.backendStatus).toUpperCase() === "OCCUPIED" ? " • occupied" : ""}
+                    {String(t.backendStatus).toUpperCase() === "OCCUPIED"
+                      ? " • occupied"
+                      : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -621,45 +781,59 @@ function DetailPanel({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Party size</label>
+              <label className="text-xs text-[hsl(40,10%,60%)]">
+                Party size
+              </label>
               <input
                 type="number"
                 min="1"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+               className={glassInputClass()}
+
                 value={editForm.partySize}
-                onChange={(e) => setEditForm((p) => ({ ...p, partySize: e.target.value }))}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, partySize: e.target.value }))
+                }
                 disabled={selected.status !== "BOOKED"}
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Phone</label>
+              <label className="text-xs text-[hsl(40,10%,60%)]">Phone</label>
               <input
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+               className={glassInputClass()}
+
                 value={editForm.phone}
-                onChange={(e) => setEditForm((p) => ({ ...p, phone: e.target.value }))}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, phone: e.target.value }))
+                }
                 disabled={selected.status !== "BOOKED"}
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">Name</label>
+            <label className="text-xs text-[hsl(40,10%,60%)]">Name</label>
             <input
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+             className={glassInputClass()}
+
               value={editForm.name}
-              onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, name: e.target.value }))
+              }
               disabled={selected.status !== "BOOKED"}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">Notes</label>
+            <label className="text-xs text-[hsl(40,10%,60%)]">Notes</label>
             <textarea
               rows={3}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+             className={glassInputClass()}
+
               value={editForm.notes}
-              onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, notes: e.target.value }))
+              }
               disabled={selected.status !== "BOOKED"}
             />
           </div>
@@ -667,19 +841,24 @@ function DetailPanel({
       </div>
 
       <div className="mt-auto p-4 pt-0">
-        <Separator className="my-3" />
+        <Separator className="my-3 bg-[hsl(40,20%,95%)/10%]" />
         <div className="flex items-center gap-2">
           <Button
-            className="flex-1"
+            className="flex-1 rounded-2xl"
             onClick={onSave}
             disabled={!isDirty || busySave || selected.status !== "BOOKED"}
-            title={selected.status !== "BOOKED" ? "Only BOOKED reservations can be edited" : undefined}
+            title={
+              selected.status !== "BOOKED"
+                ? "Only BOOKED reservations can be edited"
+                : undefined
+            }
           >
             {busySave ? "Saving…" : "Save"}
           </Button>
 
           <Button
             variant="secondary"
+            className="rounded-2xl bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] hover:bg-[hsl(40,20%,95%)/10%]"
             onClick={onSeat}
             disabled={selected.status !== "BOOKED" || occupied}
             title={occupied ? "Table occupied" : "Seat reservation"}
@@ -690,17 +869,23 @@ function DetailPanel({
 
           <Button
             variant="destructive"
+            className="rounded-2xl"
             onClick={onAskCancel}
             disabled={selected.status !== "BOOKED"}
-            title={selected.status !== "BOOKED" ? "Only BOOKED can be cancelled" : "Cancel"}
+            title={
+              selected.status !== "BOOKED"
+                ? "Only BOOKED can be cancelled"
+                : "Cancel"
+            }
           >
             <XCircle className="w-4 h-4 mr-1" />
             Cancel
           </Button>
         </div>
 
-        <div className="mt-2 text-xs text-muted-foreground">
-          Tip: You allow multiple reservations per table/day — time is what matters. Keep bookings spaced sensibly.
+        <div className="mt-2 text-xs text-[hsl(40,10%,60%)]">
+          Tip: You allow multiple reservations per table/day — time is what
+          matters. Keep bookings spaced sensibly.
         </div>
       </div>
     </div>
@@ -720,11 +905,13 @@ function CreateDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="bg-[hsl(222,18%,9%)] text-[hsl(40,30%,92%)] border border-[hsl(40,30%,85%)/12%] rounded-3xl shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)]">
+
         <DialogHeader>
           <DialogTitle>Create reservation</DialogTitle>
           <DialogDescription>
-            Reserve any table for any day. Multiple bookings per table/day are allowed — time matters.
+            Reserve any table for any day. Multiple bookings per table/day are
+            allowed — time matters.
           </DialogDescription>
         </DialogHeader>
 
@@ -734,18 +921,22 @@ function CreateDialog({
               <label className="text-xs text-muted-foreground">Date</label>
               <input
                 type="date"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className={glassInputClass("w-full")}
                 value={createForm.date}
-                onChange={(e) => setCreateForm((p) => ({ ...p, date: e.target.value }))}
+                onChange={(e) =>
+                  setCreateForm((p) => ({ ...p, date: e.target.value }))
+                }
               />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Time</label>
               <input
                 type="time"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className={glassInputClass("w-full")}
                 value={createForm.time}
-                onChange={(e) => setCreateForm((p) => ({ ...p, time: e.target.value }))}
+                onChange={(e) =>
+                  setCreateForm((p) => ({ ...p, time: e.target.value }))
+                }
               />
             </div>
           </div>
@@ -754,17 +945,25 @@ function CreateDialog({
             <label className="text-xs text-muted-foreground">Table</label>
             <Select
               value={createForm.tableId}
-              onValueChange={(v) => setCreateForm((p) => ({ ...p, tableId: v }))}
+              onValueChange={(v) =>
+                setCreateForm((p) => ({ ...p, tableId: v }))
+              }
               disabled={loadingTables}
             >
-              <SelectTrigger>
-                <SelectValue placeholder={loadingTables ? "Loading tables…" : "Select a table"} />
+              <SelectTrigger className="rounded-2xl">
+                <SelectValue
+                  placeholder={
+                    loadingTables ? "Loading tables…" : "Select a table"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {tables.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
                     {t.label}
-                    {String(t.backendStatus).toUpperCase() === "OCCUPIED" ? " • occupied" : ""}
+                    {String(t.backendStatus).toUpperCase() === "OCCUPIED"
+                      ? " • occupied"
+                      : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -773,28 +972,35 @@ function CreateDialog({
             {createForm.tableId && occupiedTableIds.has(createForm.tableId) ? (
               <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
                 <AlertTriangle className="w-4 h-4" />
-                Table is currently occupied — booking is OK; seating happens later when free.
+                Table is currently occupied — booking is OK; seating happens
+                later when free.
               </div>
             ) : null}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Party size</label>
+              <label className="text-xs text-muted-foreground">
+                Party size
+              </label>
               <input
                 type="number"
                 min="1"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className={glassInputClass("w-full")}
                 value={createForm.partySize}
-                onChange={(e) => setCreateForm((p) => ({ ...p, partySize: e.target.value }))}
+                onChange={(e) =>
+                  setCreateForm((p) => ({ ...p, partySize: e.target.value }))
+                }
               />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Phone</label>
               <input
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className={glassInputClass("w-full")}
                 value={createForm.phone}
-                onChange={(e) => setCreateForm((p) => ({ ...p, phone: e.target.value }))}
+                onChange={(e) =>
+                  setCreateForm((p) => ({ ...p, phone: e.target.value }))
+                }
               />
             </div>
           </div>
@@ -802,9 +1008,11 @@ function CreateDialog({
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Name</label>
             <input
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={glassInputClass("w-full")}
               value={createForm.name}
-              onChange={(e) => setCreateForm((p) => ({ ...p, name: e.target.value }))}
+              onChange={(e) =>
+                setCreateForm((p) => ({ ...p, name: e.target.value }))
+              }
             />
           </div>
 
@@ -812,9 +1020,11 @@ function CreateDialog({
             <label className="text-xs text-muted-foreground">Notes</label>
             <textarea
               rows={3}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={glassInputClass("w-full")}
               value={createForm.notes}
-              onChange={(e) => setCreateForm((p) => ({ ...p, notes: e.target.value }))}
+              onChange={(e) =>
+                setCreateForm((p) => ({ ...p, notes: e.target.value }))
+              }
             />
           </div>
         </div>
@@ -832,36 +1042,57 @@ function CreateDialog({
   );
 }
 
-function CancelConfirmDialog({ open, onOpenChange, busy, selected, onConfirm }) {
+function CancelConfirmDialog({
+  open,
+  onOpenChange,
+  busy,
+  selected,
+  onConfirm,
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="bg-[hsl(222,18%,9%)] text-[hsl(40,30%,92%)] border border-[hsl(40,30%,85%)/12%] rounded-3xl shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)]">
+
         <DialogHeader>
           <DialogTitle>Cancel reservation?</DialogTitle>
           <DialogDescription>
-            This will mark the reservation as cancelled. This action is typically irreversible.
+            This will mark the reservation as cancelled. This action is
+            typically irreversible.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-sm">
+        <div className="rounded-2xl border border-destructive/25 bg-destructive/10 p-3 text-sm">
           {selected ? (
             <div className="space-y-1">
               <div className="font-medium">{selected.name}</div>
               <div className="text-muted-foreground">
-                {formatDate(selected.reservedFor)} • {formatTime(selected.reservedFor)} • Table{" "}
-                {selected.tableNumber != null ? pad2(selected.tableNumber) : "—"}
+                {formatDate(selected.reservedFor)} •{" "}
+                {formatTime(selected.reservedFor)} • Table{" "}
+                {selected.tableNumber != null
+                  ? pad2(selected.tableNumber)
+                  : "—"}
               </div>
             </div>
           ) : (
-            <div className="text-muted-foreground">No reservation selected.</div>
+            <div className="text-muted-foreground">
+              No reservation selected.
+            </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={busy}
+          >
             Keep
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={busy || !selected}>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={busy || !selected}
+          >
             {busy ? "Cancelling…" : "Cancel reservation"}
           </Button>
         </DialogFooter>
@@ -899,11 +1130,15 @@ export default function ManageReservationsPage() {
     return () => mq.removeEventListener?.("change", apply);
   }, []);
 
-  const occupiedTableIds = useMemo(() => new Set(state.occupiedTableIds || []), [state.occupiedTableIds]);
+  const occupiedTableIds = useMemo(
+    () => new Set(state.occupiedTableIds || []),
+    [state.occupiedTableIds],
+  );
 
   // setters
   const setSelectedDate = useCallback(
-    (v) => dispatch({ type: RES_TYPES.SET_CONTROLS, payload: { selectedDate: v } }),
+    (v) =>
+      dispatch({ type: RES_TYPES.SET_CONTROLS, payload: { selectedDate: v } }),
     [dispatch],
   );
   const setScope = useCallback(
@@ -911,7 +1146,8 @@ export default function ManageReservationsPage() {
     [dispatch],
   );
   const setStatusFilter = useCallback(
-    (v) => dispatch({ type: RES_TYPES.SET_CONTROLS, payload: { statusFilter: v } }),
+    (v) =>
+      dispatch({ type: RES_TYPES.SET_CONTROLS, payload: { statusFilter: v } }),
     [dispatch],
   );
   const setSearch = useCallback(
@@ -925,11 +1161,16 @@ export default function ManageReservationsPage() {
   );
 
   const setOpenCreate = useCallback(
-    (v) => dispatch({ type: RES_TYPES.SET_DIALOGS, payload: { openCreate: !!v } }),
+    (v) =>
+      dispatch({ type: RES_TYPES.SET_DIALOGS, payload: { openCreate: !!v } }),
     [dispatch],
   );
   const setOpenCancelConfirm = useCallback(
-    (v) => dispatch({ type: RES_TYPES.SET_DIALOGS, payload: { openCancelConfirm: !!v } }),
+    (v) =>
+      dispatch({
+        type: RES_TYPES.SET_DIALOGS,
+        payload: { openCancelConfirm: !!v },
+      }),
     [dispatch],
   );
 
@@ -953,13 +1194,15 @@ export default function ManageReservationsPage() {
   const statusChips = useMemo(() => {
     return STATUS_FILTERS.map((s) => ({
       key: s,
-      label: s === "ALL" ? "All" : s[0] + s.slice(1).toLowerCase().replace("_", "-"),
+      label:
+        s === "ALL" ? "All" : s[0] + s.slice(1).toLowerCase().replace("_", "-"),
     }));
   }, []);
 
   const filtered = useMemo(() => {
     return (state.reservations || []).filter((r) => {
-      if (state.statusFilter !== "ALL" && r.status !== state.statusFilter) return false;
+      if (state.statusFilter !== "ALL" && r.status !== state.statusFilter)
+        return false;
       if (!matchesSearch(r, state.search)) return false;
       return true;
     });
@@ -1021,7 +1264,10 @@ export default function ManageReservationsPage() {
   // loaders
   const refreshAll = useCallback(async () => {
     await Promise.all([
-      loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate }),
+      loadReservationsByScope(dispatch, {
+        scope: state.scope,
+        selectedDate: state.selectedDate,
+      }),
       loadTables(dispatch),
     ]);
   }, [dispatch, state.scope, state.selectedDate]);
@@ -1033,9 +1279,11 @@ export default function ManageReservationsPage() {
 
   // reload when selectedDate/scope changes
   useEffect(() => {
-    loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate })
+    loadReservationsByScope(dispatch, {
+      scope: state.scope,
+      selectedDate: state.selectedDate,
+    })
       .then(() => {
-        // selection rules
         const list = state.reservations || [];
         if (lastSelectedRef.current) {
           const stillThere = list.some((r) => r.id === lastSelectedRef.current);
@@ -1120,14 +1368,20 @@ export default function ManageReservationsPage() {
         name: createForm.name.trim(),
         phone: createForm.phone.trim(),
         partySize: party,
-        reservedFor: buildISOFromLocalDateTime(createForm.date, createForm.time),
+        reservedFor: buildISOFromLocalDateTime(
+          createForm.date,
+          createForm.time,
+        ),
         notes: createForm.notes?.trim() || "",
       });
 
       toast.success("Reservation created");
       setOpenCreate(false);
 
-      await loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate });
+      await loadReservationsByScope(dispatch, {
+        scope: state.scope,
+        selectedDate: state.selectedDate,
+      });
     } catch (e) {
       toast.error(e?.message || "Failed to create reservation");
     }
@@ -1165,7 +1419,10 @@ export default function ManageReservationsPage() {
       });
 
       toast.success("Reservation updated");
-      await loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate });
+      await loadReservationsByScope(dispatch, {
+        scope: state.scope,
+        selectedDate: state.selectedDate,
+      });
     } catch (e) {
       toast.error(e?.message || "Failed to update reservation");
     }
@@ -1181,7 +1438,9 @@ export default function ManageReservationsPage() {
       if (r.status !== "BOOKED") return;
 
       if (r.tableId && occupiedTableIds.has(r.tableId)) {
-        toast.error("Table is currently occupied. Free it before seating this reservation.");
+        toast.error(
+          "Table is currently occupied. Free it before seating this reservation.",
+        );
         return;
       }
 
@@ -1189,7 +1448,8 @@ export default function ManageReservationsPage() {
         await seatReservationAction(dispatch, r.id);
 
         toast("Reservation seated", {
-          description: r.tableNumber != null ? `Table ${pad2(r.tableNumber)}` : "Table",
+          description:
+            r.tableNumber != null ? `Table ${pad2(r.tableNumber)}` : "Table",
           action: {
             label: "View table",
             onClick: () => navigate(`/staff/tables/${r.tableId}`),
@@ -1197,14 +1457,25 @@ export default function ManageReservationsPage() {
         });
 
         await Promise.all([
-          loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate }),
+          loadReservationsByScope(dispatch, {
+            scope: state.scope,
+            selectedDate: state.selectedDate,
+          }),
           loadTables(dispatch),
         ]);
       } catch (e) {
         toast.error(e?.message || "Failed to seat reservation");
       }
     },
-    [dispatch, state.reservations, filtered, occupiedTableIds, navigate, state.scope, state.selectedDate],
+    [
+      dispatch,
+      state.reservations,
+      filtered,
+      occupiedTableIds,
+      navigate,
+      state.scope,
+      state.selectedDate,
+    ],
   );
 
   const askCancel = useCallback(() => {
@@ -1225,11 +1496,20 @@ export default function ManageReservationsPage() {
       await cancelReservationAction(dispatch, selected.id);
       toast.success("Reservation cancelled");
       setOpenCancelConfirm(false);
-      await loadReservationsByScope(dispatch, { scope: state.scope, selectedDate: state.selectedDate });
+      await loadReservationsByScope(dispatch, {
+        scope: state.scope,
+        selectedDate: state.selectedDate,
+      });
     } catch (e) {
       toast.error(e?.message || "Failed to cancel reservation");
     }
-  }, [dispatch, selected, state.scope, state.selectedDate, setOpenCancelConfirm]);
+  }, [
+    dispatch,
+    selected,
+    state.scope,
+    state.selectedDate,
+    setOpenCancelConfirm,
+  ]);
 
   const headerLabel = useMemo(() => {
     const scopeLabel =
@@ -1239,7 +1519,9 @@ export default function ManageReservationsPage() {
           ? `From ${state.selectedDate} • next 7 days`
           : `From ${state.selectedDate} • next 30 days`;
 
-    const count = state.loading ? "Loading…" : `${filtered.length} reservations`;
+    const count = state.loading
+      ? "Loading…"
+      : `${filtered.length} reservations`;
     return `${count} • ${scopeLabel}`;
   }, [state.loading, filtered.length, state.scope, state.selectedDate]);
 
@@ -1287,7 +1569,7 @@ export default function ManageReservationsPage() {
         stats={stats}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_420px] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_420px] gap-4">
         <ReservationsList
           loading={state.loading}
           filtered={filtered}
@@ -1297,9 +1579,12 @@ export default function ManageReservationsPage() {
           renderRow={renderRow}
         />
 
-        <Card className="border-border/60 hidden md:block">
+        <Card className={cn(glassCardClass(), "hidden md:block")}>
+          <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Details</CardTitle>
+            <CardTitle className="text-base text-[hsl(40,20%,95%)]">
+              Details
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <DetailPanel
@@ -1322,10 +1607,12 @@ export default function ManageReservationsPage() {
 
       {/* Mobile details */}
       <Dialog open={openMobileDetail} onOpenChange={setOpenMobileDetail}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-[hsl(222,18%,9%)] text-[hsl(40,30%,92%)] border border-[hsl(40,30%,85%)/12%] rounded-3xl shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)]">
           <DialogHeader>
             <DialogTitle>Reservation</DialogTitle>
-            <DialogDescription>View and manage the selected reservation</DialogDescription>
+            <DialogDescription>
+              View and manage the selected reservation
+            </DialogDescription>
           </DialogHeader>
 
           <div className="-mx-6">

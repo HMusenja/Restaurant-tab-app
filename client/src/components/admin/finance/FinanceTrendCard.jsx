@@ -1,3 +1,4 @@
+// src/components/admin/finance/FinanceTrendCard.jsx
 import {
   ResponsiveContainer,
   AreaChart,
@@ -17,30 +18,22 @@ function metricKey(metric) {
   return "grossEUR";
 }
 
-export default function FinanceTrendCard({
-  trend,
-  metric,
-  groupBy,
-  yTick,
-  xTick,
-}) {
+export default function FinanceTrendCard({ trend, metric, groupBy, yTick, xTick }) {
+  const data = Array.isArray(trend) ? trend : [];
+
   return (
     <Card className="shadow-soft">
       <CardHeader>
-        <CardTitle>
-          Trend ({groupBy})
-        </CardTitle>
+        <CardTitle>Trend ({groupBy})</CardTitle>
       </CardHeader>
 
       <CardContent>
-        {trend.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            No data in range.
-          </div>
+        {data.length === 0 ? (
+          <div className="text-sm text-muted-foreground">No data in range.</div>
         ) : (
-          <div className="h-[280px] w-full">
+          <div className="h-[260px] sm:h-[280px] w-full">
             <ResponsiveContainer>
-              <AreaChart data={trend}>
+              <AreaChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="bucket" tickFormatter={xTick} />
                 <YAxis tickFormatter={yTick} />

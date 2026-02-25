@@ -38,20 +38,19 @@ function normalizeStatus(status) {
   if (s === "OPEN") return "pending";
   if (s === "IN_PROGRESS") return "acknowledged";
   if (s === "DONE") return "completed";
-  // already-ui?
   return String(status || "pending").toLowerCase();
 }
 
 function normalizeRequest(r) {
-  // Backend shape: { id, type, status, createdAt, table: { number } }
-  // UI shape: { id, type, status, createdAt, tableName }
   const id = r.id || r._id;
   const type = normalizeType(r.type);
   const status = normalizeStatus(r.status);
 
   const tableName =
     r.tableName ||
-    (r.table?.number != null ? `Table ${String(r.table.number).padStart(2, "0")}` : "Table ?");
+    (r.table?.number != null
+      ? `Table ${String(r.table.number).padStart(2, "0")}`
+      : "Table ?");
 
   return {
     id,
@@ -67,8 +66,6 @@ function timeAgoSmart(date) {
   if (!date) return "";
   const ms = Date.now() - new Date(date).getTime();
   if (!Number.isFinite(ms)) return "";
-
-  // future clock drift
   if (ms < 0) return "Just now";
 
   const minutes = Math.floor(ms / 60000);
@@ -82,89 +79,147 @@ function timeAgoSmart(date) {
   return `${days}d ago`;
 }
 
-export function RequestsCard({ requests, onAcknowledge, onComplete }) {
-  // const getTimeAgo = (date) => {
-  //   if (!date) return "";
-  //   const minutes = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
-  //   if (minutes < 1) return "Just now";
-  //   if (minutes === 1) return "1m ago";
-  //   return `${minutes}m ago`;
-  // };
+function typePillClass(type) {
+  // Slightly different tint per request type, still within your dark/amber system.
+  switch (type) {
+    case "water":
+      return "bg-primary/10 border-primary/20 text-primary/80";
+    case "help":
+      return "bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]";
+    case "bill":
+      return "bg-warning/10 border-warning/20 text-warning";
+    default:
+      return "bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]";
+  }
+}
 
+export function RequestsCard({ requests, onAcknowledge, onComplete }) {
   const normalized = (requests || []).map(normalizeRequest);
 
-  // show newest 5 that are not completed
+  // newest 5 not completed
   const activeRequests = normalized
     .filter((r) => r.status !== "completed")
     .slice(0, 5);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Recent Requests</CardTitle>
-        <Badge variant="secondary">{activeRequests.length} active</Badge>
+    <Card
+      className={cn(
+        "relative overflow-hidden rounded-2xl",
+        "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
+        "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+      )}
+    >
+      <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
+        <div className="min-w-0">
+          <CardTitle className="text-base md:text-lg text-[hsl(40,20%,95%)]">
+            Recent Requests
+          </CardTitle>
+          <div className="mt-1 text-xs text-[hsl(40,10%,60%)]">
+            AfroAsiatique • Service queue
+          </div>
+        </div>
+
+        <Badge className="rounded-full bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]">
+          {activeRequests.length} active
+        </Badge>
       </CardHeader>
 
       <CardContent className="space-y-3">
         {activeRequests.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <Check className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">All caught up!</p>
+          <div className="rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] py-8 text-center">
+            <Check className="h-9 w-9 mx-auto mb-2 opacity-60 text-primary" />
+            <p className="text-sm font-medium text-[hsl(40,20%,92%)]">
+              All caught up!
+            </p>
+            <p className="text-xs text-[hsl(40,10%,60%)] mt-1">
+              No pending requests right now.
+            </p>
           </div>
         ) : (
           activeRequests.map((request) => {
             const Icon = serviceIcons[request.type] || MessageSquare;
             const isPending = request.status === "pending";
+            const isAck = request.status === "acknowledged";
 
             return (
               <div
                 key={request.id}
                 className={cn(
-                  "flex items-center gap-3 p-3 rounded-lg border transition-colors",
-                  isPending
-                    ? "bg-primary/5 border-primary/20"
-                    : "bg-card border-border"
+                  "group flex items-center gap-3 p-3 rounded-2xl border transition-colors",
+                  "bg-[hsl(40,20%,95%)/4%] border-[hsl(40,20%,95%)/10%]",
+                  isPending && "bg-primary/10 border-primary/20"
                 )}
               >
+                {/* Icon */}
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                    isPending ? "bg-primary/20" : "bg-secondary"
+                    "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
+                    isPending
+                      ? "bg-primary/15 border-primary/25"
+                      : "bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%]"
                   )}
                 >
                   <Icon
                     className={cn(
                       "w-5 h-5",
-                      isPending ? "text-primary" : "text-muted-foreground"
+                      isPending ? "text-primary" : "text-[hsl(40,10%,75%)]"
                     )}
                   />
                 </div>
 
+                {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{request.tableName}</span>
-                    <Badge
-                      variant={isPending ? "default" : "secondary"}
-                      className="text-xs"
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold text-sm text-[hsl(40,20%,95%)] truncate">
+                      {request.tableName}
+                    </span>
+
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                        typePillClass(request.type)
+                      )}
                     >
                       {serviceLabels[request.type] || "Other"}
-                    </Badge>
+                    </span>
+
+                    {isAck ? (
+                      <span className="hidden sm:inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold bg-success/10 border-success/20 text-success">
+                        acknowledged
+                      </span>
+                    ) : null}
                   </div>
 
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <Clock className="w-3 h-3" />
-                    {timeAgoSmart(request.createdAt)}
+                  <div className="mt-1 flex items-center gap-2 text-xs text-[hsl(40,10%,60%)]">
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {timeAgoSmart(request.createdAt)}
+                    </span>
+
+                    {/* optional note line (only if present) */}
+                    {request.note ? (
+                      <span className="truncate text-[hsl(40,10%,55%)]">
+                        • {request.note}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
+                {/* Action */}
                 <Button
                   size="sm"
                   variant={isPending ? "default" : "success"}
+                  className={cn(
+                    "rounded-xl",
+                    "border border-[hsl(40,20%,95%)/10%]",
+                    "shadow-sm"
+                  )}
                   onClick={() =>
-                    isPending
-                      ? onAcknowledge(request.id)
-                      : onComplete(request.id)
+                    isPending ? onAcknowledge(request.id) : onComplete(request.id)
                   }
+                  aria-label={isPending ? "Acknowledge request" : "Complete request"}
                 >
                   <Check className="w-4 h-4" />
                 </Button>

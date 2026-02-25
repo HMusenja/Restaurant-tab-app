@@ -6,39 +6,75 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchTables } from "@/api/staffTableApi";
 import { fetchServiceRequests } from "@/api/servicesApi";
 import { useRealtime } from "@/contexts/RealtimeContext.jsx";
+import { cn } from "@/lib/utils";
 
 function StatCard({ title, value, description, icon: Icon, trend }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <Card
+      className={cn(
+        // glass card that matches your staff shell
+        "relative overflow-hidden rounded-2xl",
+        "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
+        "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+      )}
+    >
+      {/* soft glow accent */}
+      <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+
+      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+        <CardTitle className="text-xs font-semibold tracking-[0.18em] uppercase text-primary/70">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+
+        <div className="h-9 w-9 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <Icon className="h-4 w-4 text-primary/90" />
+        </div>
       </CardHeader>
 
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+      <CardContent className="pt-0">
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-3xl font-bold leading-none tracking-tight text-[hsl(40,20%,95%)]">
+              {value}
+            </div>
 
-        {description ? (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        ) : null}
-
-        {trend ? (
-          <div
-            className={`flex items-center gap-1 text-xs mt-2 ${
-              trend.positive ? "text-success" : "text-destructive"
-            }`}
-          >
-            <TrendingUp
-              className={`h-3 w-3 ${!trend.positive ? "rotate-180" : ""}`}
-            />
-            <span>
-              {trend.positive ? "+" : ""}
-              {trend.value}% from last hour
-            </span>
+            {description ? (
+              <p className="mt-2 text-xs text-[hsl(40,10%,60%)] leading-relaxed">
+                {description}
+              </p>
+            ) : null}
           </div>
-        ) : null}
+
+          {trend ? (
+            <div
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                "border",
+                trend.positive
+                  ? "text-success border-success/25 bg-success/10"
+                  : "text-destructive border-destructive/25 bg-destructive/10"
+              )}
+              title="Compared to the previous hour"
+            >
+              <TrendingUp
+                className={cn("h-3.5 w-3.5", !trend.positive ? "rotate-180" : "")}
+              />
+              <span>
+                {trend.positive ? "+" : ""}
+                {trend.value}%
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        {/* subtle bottom divider */}
+        <div className="mt-4 h-px w-full bg-[hsl(40,20%,95%)/8%]" />
+
+        {/* tiny helper row for POS vibe */}
+        <div className="mt-3 flex items-center justify-between text-[11px] text-[hsl(40,10%,55%)]">
+          <span className="tracking-[0.16em] uppercase">AfroAsiatique</span>
+          <span className="text-primary/70">Live</span>
+        </div>
       </CardContent>
     </Card>
   );
@@ -75,9 +111,8 @@ export function OverviewStats() {
     setErr("");
 
     try {
-      // We fetch only what we need to compute stats
       const [tablesRes, openRes, doneRes] = await Promise.all([
-        fetchTables(), // all tables
+        fetchTables(),
         fetchServiceRequests({ status: "OPEN" }),
         fetchServiceRequests({ status: "DONE" }),
       ]);
@@ -92,15 +127,13 @@ export function OverviewStats() {
     }
   }, []);
 
-  // initial load
   useEffect(() => {
     loadOverview();
   }, [loadOverview]);
 
-  // realtime: refresh this overview when staff events happen
   useEffect(() => {
     const id = rt.registerStaff({
-      reloadTickets: null, // overview doesn’t need tickets
+      reloadTickets: null,
       reloadServices: loadOverview,
       reloadTables: loadOverview,
     });
@@ -117,7 +150,6 @@ export function OverviewStats() {
 
     const today = startOfToday();
 
-    // Completed today = DONE requests whose updatedAt is today
     const doneToday = doneRequests.filter((r) => {
       const u = r.updatedAt ? new Date(r.updatedAt) : null;
       return u && u >= today;
@@ -125,7 +157,6 @@ export function OverviewStats() {
 
     const completedToday = doneToday.length;
 
-    // Avg completion time today = avg(createdAt -> updatedAt) for DONE today
     const avgResponseMins =
       completedToday === 0
         ? null
@@ -134,18 +165,14 @@ export function OverviewStats() {
               const c = new Date(r.createdAt);
               const u = new Date(r.updatedAt);
               return sum + minutesBetween(c, u);
-            }, 0) / completedToday,
+            }, 0) / completedToday
           );
 
-    // "Guests served" isn’t stored. We’ll use a real proxy:
-    // Tables seated today = assignedAt today
     const tablesSeatedToday = tables.filter((t) => {
       if (!t.assignedAt) return false;
       return new Date(t.assignedAt) >= today;
     }).length;
 
-    // Optional trends (simple, client-side):
-    // compare requests completed in last hour vs hour before
     const now = Date.now();
     const oneHour = 60 * 60 * 1000;
 
@@ -229,7 +256,11 @@ export function OverviewStats() {
 
   return (
     <div className="space-y-3">
-      {err ? <div className="text-sm text-destructive">{err}</div> : null}
+      {err ? (
+        <div className="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {err}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {stats.map((stat) => (

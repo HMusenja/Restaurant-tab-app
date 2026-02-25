@@ -6,10 +6,22 @@ import { cn } from "@/lib/utils";
 import { fetchTables } from "@/api/staffTableApi";
 import { useRealtime } from "@/contexts/RealtimeContext";
 
-const statusColors = {
-  available: "bg-success/20 text-success border-success/30",
-  occupied: "bg-primary/20 text-primary border-primary/30",
-  reserved: "bg-warning/20 text-warning border-warning/30",
+const statusMeta = {
+  available: {
+    label: "free",
+    tile: "border-success/25 bg-success/10 text-success",
+    dot: "bg-success",
+  },
+  occupied: {
+    label: "occupied",
+    tile: "border-primary/25 bg-primary/10 text-primary",
+    dot: "bg-primary",
+  },
+  reserved: {
+    label: "reserved",
+    tile: "border-warning/25 bg-warning/10 text-warning",
+    dot: "bg-warning",
+  },
 };
 
 function formatEUR(cents) {
@@ -29,11 +41,7 @@ function toUiTable(t) {
     id: t.id || t._id,
     name: `Table ${String(t.number).padStart(2, "0")}`,
     status: isOccupied ? "occupied" : "available",
-
-    // guests will come next (see below)
     guests: typeof t.guestCount === "number" ? t.guestCount : null,
-
-    // ✅ NEW
     tabTotalLabel: activeTabObj ? formatEUR(activeTabObj.totalCents) : null,
   };
 }
@@ -48,7 +56,7 @@ export function TablesOverview() {
   const reloadTables = useCallback(async () => {
     setError("");
     try {
-      const data = await fetchTables(); // expects { tables: [...] }
+      const data = await fetchTables();
       const rows = (data?.tables ?? []).map(toUiTable);
       setTables(rows);
     } catch (e) {
@@ -58,16 +66,13 @@ export function TablesOverview() {
     }
   }, []);
 
-  // initial load
   useEffect(() => {
     reloadTables();
   }, [reloadTables]);
 
-  // realtime: register staff and let provider call reloadTables on events
   useEffect(() => {
     const id = realtime.registerStaff({
       reloadTables,
-      // keep these null to avoid unnecessary work here
       reloadTickets: null,
       reloadServices: null,
     });
@@ -83,20 +88,55 @@ export function TablesOverview() {
     });
   }, [tables]);
 
+  const summary = useMemo(() => {
+    const occupied = tables.filter((t) => t.status === "occupied").length;
+    const available = tables.filter((t) => t.status === "available").length;
+    const reserved = tables.filter((t) => t.status === "reserved").length;
+    return { occupied, available, reserved, total: tables.length };
+  }, [tables]);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Table Status</CardTitle>
+    <Card
+      className={cn(
+        "relative overflow-hidden rounded-2xl",
+        "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
+        "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+      )}
+    >
+      <div className="pointer-events-none absolute -top-16 -left-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
+        <div className="min-w-0">
+          <CardTitle className="text-base md:text-lg text-[hsl(40,20%,95%)]">
+            Table Status
+          </CardTitle>
+          <div className="mt-1 text-xs text-[hsl(40,10%,60%)]">
+            AfroAsiatique • Floor overview
+          </div>
+        </div>
+
+        {!loading ? (
+          <div className="flex items-center gap-2">
+            <Badge className="rounded-full bg-primary/10 border border-primary/20 text-primary/80">
+              {summary.occupied} occupied
+            </Badge>
+            <Badge className="rounded-full bg-success/10 border border-success/20 text-success">
+              {summary.available} free
+            </Badge>
+          </div>
+        ) : null}
       </CardHeader>
 
       <CardContent>
         {loading ? (
-          <div className="text-sm text-muted-foreground">Loading…</div>
+          <div className="text-sm text-[hsl(40,10%,60%)]">Loading…</div>
         ) : error ? (
-          <div className="space-y-2">
-            <div className="text-sm text-destructive">{error}</div>
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
             <button
-              className="rounded-md border px-3 py-1 text-sm"
+              className="rounded-xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] px-3 py-2 text-sm text-[hsl(40,20%,92%)] hover:bg-[hsl(40,20%,95%)/7%]"
               onClick={() => {
                 setLoading(true);
                 reloadTables();
@@ -107,60 +147,76 @@ export function TablesOverview() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {sortedTables.map((table) => (
-              <div
-                key={table.id}
-                className={cn(
-                  "p-3 rounded-xl border-2 transition-all overflow-hidden cursor-pointer hover:scale-[1.02]",
-                  statusColors[table.status],
-                )}
-                onClick={() => {
-                  // Step 4 will navigate to detail route
-                  // For now, keep as a no-op or console log
-                  // console.log("Clicked table", table.id);
-                }}
-              >
-                <div className="mb-2 space-y-1">
-                  {/* Line 1: Table name */}
-                  <div className="text-sm font-semibold leading-none">
-                    {table.name}
+            {sortedTables.map((table) => {
+              const meta = statusMeta[table.status] || statusMeta.available;
+
+              return (
+                <button
+                  key={table.id}
+                  type="button"
+                  className={cn(
+                    "text-left group relative rounded-2xl border p-3 transition-all",
+                    "bg-[hsl(40,20%,95%)/4%] border-[hsl(40,20%,95%)/10%]",
+                    "hover:bg-[hsl(40,20%,95%)/6%] hover:scale-[1.01] active:scale-[0.99]"
+                  )}
+                  onClick={() => {
+                    // no behavior change — navigation comes later
+                  }}
+                >
+                  {/* Status strip */}
+                  <div
+                    className={cn(
+                      "absolute inset-x-0 top-0 h-1 rounded-t-2xl",
+                      meta.dot
+                    )}
+                  />
+
+                  <div className="mb-2 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold leading-none text-[hsl(40,20%,95%)]">
+                        {table.name}
+                      </div>
+
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold capitalize",
+                          meta.tile
+                        )}
+                      >
+                        <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
+                        {meta.label}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Line 2: Status badge */}
-                  <Badge
-                    variant="outline"
-                    className="w-fit text-[11px] px-2 py-0.5 capitalize"
-                  >
-                    {table.status}
-                  </Badge>
-                </div>
+                  {table.status === "occupied" ? (
+                    <div className="space-y-1">
+                      {typeof table.guests === "number" ? (
+                        <div className="flex items-center gap-1 text-xs text-[hsl(40,10%,70%)]">
+                          <Users className="w-3 h-3 text-primary/80" />
+                          <span>{table.guests} guests</span>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-[hsl(40,10%,60%)]">
+                          Active tab
+                        </div>
+                      )}
 
-                {table.status === "occupied" && (
-                  <div className="space-y-1">
-                    {/* guests not available yet -> hide gracefully */}
-                    {typeof table.guests === "number" ? (
-                      <div className="flex items-center gap-1 text-xs">
-                        <Users className="w-3 h-3" />
-                        <span>{table.guests} guests</span>
+                      <div className="text-sm font-semibold text-[hsl(40,20%,95%)]">
+                        {table.tabTotalLabel || "—"}
                       </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground">
-                        Active tab: {table.activeTab ? "Yes" : "—"}
-                      </div>
-                    )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-[hsl(40,10%,60%)]">
+                      Tap to open
+                    </div>
+                  )}
 
-                    {/* tabTotal not available yet -> hide gracefully */}
-                    {table.tabTotalLabel ? (
-                      <div className="text-sm font-medium">
-                        {table.tabTotalLabel}
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground">—</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+                  {/* subtle glow on hover */}
+                  <div className="pointer-events-none absolute -bottom-10 -right-10 h-28 w-28 rounded-full bg-primary/0 blur-2xl transition-all group-hover:bg-primary/10" />
+                </button>
+              );
+            })}
           </div>
         )}
       </CardContent>

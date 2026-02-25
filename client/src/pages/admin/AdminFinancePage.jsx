@@ -1,19 +1,43 @@
+// src/pages/admin/AdminFinancePage.jsx
 import { useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminFinanceSummary } from "@/hooks/useAdminFinanceSummary";
 
 /* Components */
-import FinanceHeader from "@/components/admin/FinanceHeader";
-import FinanceScopeControls from "@/components/admin/FinanceScopeControls";
-import FinanceRangeCard from "@/components/admin/FinanceRangeCard";
-import FinanceKpiRow from "@/components/admin/FinanceKpiRow";
-import FinanceTrendCard from "@/components/admin/FinanceTrendCard";
-import FinanceTabsSection from "@/components/admin/FinanceTabsSection";
-import FinanceRestaurantCard from "@/components/admin/FinanceRestaurantCard";
+import FinanceHeader from "@/components/admin/finance/FinanceHeader";
+import FinanceScopeControls from "@/components/admin/finance/FinanceScopeControls";
+import FinanceRangeCard from "@/components/admin/finance/FinanceRangeCard";
+import FinanceKpiRow from "@/components/admin/finance/FinanceKpiRow";
+import FinanceTrendCard from "@/components/admin/finance/FinanceTrendCard";
+import FinanceTabsSection from "@/components/admin/finance/FinanceTabsSection";
+import FinanceRestaurantCard from "@/components/admin/finance/FinanceRestaurantCard";
 
 /* Utils */
 import { formatRangeLabel } from "@/utils/financeFormatters";
+import { cn } from "@/lib/utils";
+
+/* ------------------------------------------------------------------ */
+/* UI helpers (keep local to avoid cross-file churn) */
+/* ------------------------------------------------------------------ */
+
+const PAGE_SIZE = 5;
+
+function adminPageWrap(extra = "") {
+  return cn(
+    "mx-auto w-full max-w-6xl",
+    "px-3 sm:px-4 md:px-6",
+    "pb-6",
+    extra,
+  );
+}
+
+function adminErrorClass() {
+  return cn(
+    "rounded-2xl border border-destructive/25 bg-destructive/5",
+    "p-3 text-sm text-destructive",
+  );
+}
 
 export default function AdminFinancePage() {
   const { user } = useAuth();
@@ -22,8 +46,6 @@ export default function AdminFinancePage() {
 
   const [activeTab, setActiveTab] = useState("paid");
   const [metric, setMetric] = useState("gross");
-
-  const PAGE_SIZE = 5;
   const [paidPage, setPaidPage] = useState(1);
   const [closedPage, setClosedPage] = useState(1);
 
@@ -75,19 +97,16 @@ export default function AdminFinancePage() {
 
   const paginatedPaid = useMemo(() => {
     const start = (paidPage - 1) * PAGE_SIZE;
-    return recentPaid.slice(start, start + PAGE_SIZE);
+    return (recentPaid || []).slice(start, start + PAGE_SIZE);
   }, [recentPaid, paidPage]);
 
   const paginatedClosed = useMemo(() => {
     const start = (closedPage - 1) * PAGE_SIZE;
-    return recentClosed.slice(start, start + PAGE_SIZE);
+    return (recentClosed || []).slice(start, start + PAGE_SIZE);
   }, [recentClosed, closedPage]);
 
-  const paidTotalPages =
-    Math.ceil(recentPaid.length / PAGE_SIZE) || 1;
-
-  const closedTotalPages =
-    Math.ceil(recentClosed.length / PAGE_SIZE) || 1;
+  const paidTotalPages = Math.ceil((recentPaid?.length || 0) / PAGE_SIZE) || 1;
+  const closedTotalPages = Math.ceil((recentClosed?.length || 0) / PAGE_SIZE) || 1;
 
   /* ---------------- RANGE LABEL ---------------- */
 
@@ -104,7 +123,7 @@ export default function AdminFinancePage() {
   /* ---------------- RENDER ---------------- */
 
   return (
-    <div className="space-y-6">
+    <div className={adminPageWrap("space-y-5")}>
       {/* HEADER + TOP RIGHT SCOPE */}
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <FinanceHeader />
@@ -132,17 +151,10 @@ export default function AdminFinancePage() {
       />
 
       {/* ERROR */}
-      {error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+      {error ? <div className={adminErrorClass()}>{error}</div> : null}
 
       {/* KPI ROW */}
-      <FinanceKpiRow
-        kpis={kpis}
-        rangeLabel={rangeLabel}
-      />
+      <FinanceKpiRow kpis={kpis} rangeLabel={rangeLabel} />
 
       {/* TREND CARD */}
       <FinanceTrendCard
@@ -158,8 +170,8 @@ export default function AdminFinancePage() {
         loading={loading}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        paginatedPaid={paginatedPaid}
-        paginatedClosed={paginatedClosed}
+      paidRows={paginatedPaid}
+  closedRows={paginatedClosed}
         paidPage={paidPage}
         closedPage={closedPage}
         setPaidPage={setPaidPage}
@@ -169,10 +181,7 @@ export default function AdminFinancePage() {
       />
 
       {/* PER RESTAURANT SUMMARY */}
-      <FinanceRestaurantCard
-        loading={loading}
-        perRestaurant={perRestaurant}
-      />
+      <FinanceRestaurantCard loading={loading} perRestaurant={perRestaurant} />
     </div>
   );
 }

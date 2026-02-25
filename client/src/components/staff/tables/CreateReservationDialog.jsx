@@ -12,6 +12,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+import {
+  staffDialogContentClass,
+  staffFieldClass,
+  staffTextareaClass,
+} from "@/lib/staffUi";
+
 export default function CreateReservationDialog({
   open,
   onOpenChange,
@@ -30,40 +36,54 @@ export default function CreateReservationDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className={staffDialogContentClass()}>
         <DialogHeader>
           <DialogTitle>Create Reservation</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[hsl(40,15%,58%)]
+">
             Staff can reserve for any day (including when table is occupied).
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2">
           <div className="space-y-1">
-            <label className="text-sm font-medium">Name</label>
+            <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+              Name
+            </label>
             <input
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={staffFieldClass()}
+              placeholder="Guest name"
               value={resForm.name}
-              onChange={(e) => setResForm((p) => ({ ...p, name: e.target.value }))}
+              onChange={(e) =>
+                setResForm((p) => ({ ...p, name: e.target.value }))
+              }
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Phone</label>
+            <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+              Phone
+            </label>
             <input
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={staffFieldClass()}
+              placeholder="Phone number"
               value={resForm.phone}
-              onChange={(e) => setResForm((p) => ({ ...p, phone: e.target.value }))}
+              onChange={(e) =>
+                setResForm((p) => ({ ...p, phone: e.target.value }))
+              }
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Party Size</label>
+              <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+                Party Size
+              </label>
               <input
                 type="number"
                 min="1"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className={staffFieldClass()}
+                placeholder="2"
                 value={resForm.partySize}
                 onChange={(e) =>
                   setResForm((p) => ({ ...p, partySize: e.target.value }))
@@ -72,40 +92,53 @@ export default function CreateReservationDialog({
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">Date</label>
+              <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+                Date
+              </label>
               <input
                 type="date"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className={staffFieldClass()}
                 value={resForm.date}
-                onChange={(e) => setResForm((p) => ({ ...p, date: e.target.value }))}
+                onChange={(e) =>
+                  setResForm((p) => ({ ...p, date: e.target.value }))
+                }
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Time</label>
+            <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+              Time
+            </label>
             <input
               type="time"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={staffFieldClass()}
               value={resForm.time}
-              onChange={(e) => setResForm((p) => ({ ...p, time: e.target.value }))}
+              onChange={(e) =>
+                setResForm((p) => ({ ...p, time: e.target.value }))
+              }
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Notes</label>
+            <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+              Notes
+            </label>
             <textarea
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={staffTextareaClass()}
+              placeholder="Optional notes (e.g., window seat)"
               rows={3}
               value={resForm.notes}
-              onChange={(e) => setResForm((p) => ({ ...p, notes: e.target.value }))}
+              onChange={(e) =>
+                setResForm((p) => ({ ...p, notes: e.target.value }))
+              }
             />
           </div>
 
           {tableBackendStatus === "OCCUPIED" ? (
-            <div className="text-xs text-muted-foreground">
-              Note: This table is currently occupied. You can still book for later today or
-              future days. Reservation time is what matters.
+            <div className="text-xs text-[hsl(40,10%,60%)]">
+              Note: This table is currently occupied. You can still book for
+              later today or future days. Reservation time is what matters.
             </div>
           ) : null}
         </div>

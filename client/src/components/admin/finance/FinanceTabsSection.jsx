@@ -1,10 +1,5 @@
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-
+// src/components/admin/finance/FinanceTabsSection.jsx
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import RecentList from "./RecentList";
 import Pagination from "./Pagination";

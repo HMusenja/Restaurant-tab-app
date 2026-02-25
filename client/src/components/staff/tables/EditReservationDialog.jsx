@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { staffDialogContentClass, staffFieldClass, staffTextareaClass } from "@/lib/staffUi";
+
 export default function EditReservationDialog({
   open,
   onOpenChange,
@@ -35,23 +37,23 @@ export default function EditReservationDialog({
         if (next) onLoadTablesForMove?.();
       }}
     >
-      <DialogContent>
+      <DialogContent className={staffDialogContentClass()}>
         <DialogHeader>
           <DialogTitle>Edit Reservation</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[hsl(40,10%,65%)]">
             Move table, adjust time/date, or edit guest details.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2">
           <div className="space-y-1">
-            <label className="text-sm font-medium">Table</label>
+            <label className="text-sm font-medium text-[hsl(40,10%,70%)]">Table</label>
             <Select
               value={editForm.tableId}
               onValueChange={(v) => setEditForm((p) => ({ ...p, tableId: v }))}
               disabled={loadingTablesForMove}
             >
-              <SelectTrigger>
+              <SelectTrigger className={staffFieldClass("py-0 h-10")}>
                 <SelectValue
                   placeholder={loadingTablesForMove ? "Loading tables…" : "Select a table"}
                 />
@@ -67,18 +69,20 @@ export default function EditReservationDialog({
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Name</label>
+            <label className="text-sm font-medium text-[hsl(40,10%,70%)]">Name</label>
             <input
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={staffFieldClass()}
+              placeholder="Guest name"
               value={editForm.name}
               onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Phone</label>
+            <label className="text-sm font-medium text-[hsl(40,10%,70%)]">Phone</label>
             <input
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={staffFieldClass()}
+              placeholder="Phone number"
               value={editForm.phone}
               onChange={(e) => setEditForm((p) => ({ ...p, phone: e.target.value }))}
             />
@@ -86,23 +90,21 @@ export default function EditReservationDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Party Size</label>
+              <label className="text-sm font-medium text-[hsl(40,10%,70%)]">Party Size</label>
               <input
                 type="number"
                 min="1"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className={staffFieldClass()}
                 value={editForm.partySize}
-                onChange={(e) =>
-                  setEditForm((p) => ({ ...p, partySize: e.target.value }))
-                }
+                onChange={(e) => setEditForm((p) => ({ ...p, partySize: e.target.value }))}
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">Date</label>
+              <label className="text-sm font-medium text-[hsl(40,10%,70%)]">Date</label>
               <input
                 type="date"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className={staffFieldClass()}
                 value={editForm.date}
                 onChange={(e) => setEditForm((p) => ({ ...p, date: e.target.value }))}
               />
@@ -110,19 +112,19 @@ export default function EditReservationDialog({
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Time</label>
+            <label className="text-sm font-medium text-[hsl(40,10%,70%)]">Time</label>
             <input
               type="time"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={staffFieldClass()}
               value={editForm.time}
               onChange={(e) => setEditForm((p) => ({ ...p, time: e.target.value }))}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Notes</label>
+            <label className="text-sm font-medium text-[hsl(40,10%,70%)]">Notes</label>
             <textarea
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className={staffTextareaClass()}
               rows={3}
               value={editForm.notes}
               onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))}

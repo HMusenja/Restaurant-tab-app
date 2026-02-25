@@ -16,29 +16,24 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 15%;
 
-    /* Warm amber primary */
     --primary: 32 95% 44%;
     --primary-foreground: 0 0% 100%;
 
-    /* Soft cream secondary */
     --secondary: 40 30% 94%;
     --secondary-foreground: 220 20% 20%;
 
     --muted: 40 20% 92%;
     --muted-foreground: 220 10% 45%;
 
-    /* Warm accent */
     --accent: 32 80% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success state */
     --success: 142 72% 40%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning/pending state */
     --warning: 45 93% 47%;
     --warning-foreground: 220 20% 15%;
 
@@ -48,64 +43,40 @@
 
     --radius: 1rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Global button typography control */
+    --btn-font-size: 16px; /* iOS zoom-safe baseline */
+    --btn-line-height: 1.15;
   }
 
   .dark {
     --background: 220 20% 10%;
     --foreground: 40 20% 95%;
-
     --card: 220 20% 13%;
     --card-foreground: 40 20% 95%;
-
     --popover: 220 20% 13%;
     --popover-foreground: 40 20% 95%;
-
     --primary: 32 95% 50%;
     --primary-foreground: 220 20% 10%;
-
     --secondary: 220 15% 20%;
     --secondary-foreground: 40 20% 90%;
-
     --muted: 220 15% 18%;
     --muted-foreground: 40 10% 60%;
-
     --accent: 32 80% 55%;
     --accent-foreground: 220 20% 10%;
-
     --destructive: 0 62.8% 45%;
     --destructive-foreground: 0 0% 100%;
-
     --success: 142 60% 45%;
     --success-foreground: 0 0% 100%;
-
     --warning: 45 85% 50%;
     --warning-foreground: 220 20% 10%;
-
     --border: 220 15% 22%;
     --input: 220 15% 22%;
     --ring: 32 95% 50%;
-
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
-}
 
-@layer base {
-  html { font-size: clamp(15px, 0.9vw + 12px, 16px); }
+  html {
+    font-size: clamp(15px, 0.9vw + 12px, 16px);
+  }
 
   * {
     @apply border-border;
@@ -113,74 +84,163 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-       @apply antialiased text-foreground bg-background;
     text-rendering: optimizeLegibility;
+  }
 
-    h1 { font-size: clamp(1.6rem, 2.2vw + 1rem, 2.25rem); line-height: 1.15; }
-  h2 { font-size: clamp(1.35rem, 1.8vw + 0.9rem, 1.75rem); line-height: 1.2; }
-  h3 { font-size: clamp(1.15rem, 1.2vw + 0.85rem, 1.35rem); line-height: 1.25; }
+  /* ------------------------------------------------------------ */
+  /* Responsive Button Typography */
+  /* ------------------------------------------------------------ */
 
-  p, li { line-height: 1.55; }
-  small { font-size: 0.875rem; }
+  /* Very small devices */
+  @media (max-width: 380px) {
+    :root {
+      --btn-font-size: 16px;
+    }
+  }
 
-  button, a, input, select, textarea {
+  /* Mobile */
+  @media (min-width: 381px) and (max-width: 767px) {
+    :root {
+      --btn-font-size: 16px;
+    }
+  }
+
+  /* Tablet */
+  @media (min-width: 768px) {
+    :root {
+      --btn-font-size: 0.975rem;
+    }
+  }
+
+  /* Desktop */
+  @media (min-width: 1024px) {
+    :root {
+      --btn-font-size: 1rem;
+    }
+  }
+
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    font-size: var(--btn-font-size);
+    line-height: var(--btn-line-height);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
     -webkit-tap-highlight-color: transparent;
-  }
+    @apply touch-manipulation;
   }
 
-  /* Mobile-first touch targets */
-  button, a, input, select, textarea {
-    @apply touch-manipulation;
+  /* ------------------------------------------------------------ */
+  /* Responsive form controls (inputs / textarea / select) */
+  /* ------------------------------------------------------------ */
+
+  @media (max-width: 640px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px; /* prevent iOS zoom */
+    }
+  }
+
+  input,
+  textarea,
+  select {
+    min-height: 2.5rem;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border-radius: calc(var(--radius) - 0.25rem);
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--input));
+    outline: none;
+    appearance: none;
+  }
+
+  textarea {
+    min-height: 6.5rem;
+    resize: vertical;
+    line-height: 1.35;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground));
+    opacity: 0.9;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.25);
+  }
+
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 380px) {
+    input,
+    textarea,
+    select {
+      min-height: 2.25rem;
+      padding: 0.5rem 0.75rem;
+    }
+  }
+
+  input[type="date"],
+  input[type="time"] {
+    line-height: 1.2;
   }
 }
 
 @layer components {
-  /* Status badge variants */
   .status-pending {
     @apply bg-warning/20 text-warning-foreground border border-warning/30;
   }
-  
+
   .status-success {
     @apply bg-success/20 text-success border border-success/30;
   }
-  
+
   .status-active {
     @apply bg-primary/20 text-primary border border-primary/30;
   }
 }
 
 @layer utilities {
-  /* Safe area padding for mobile */
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 1rem);
   }
-  
+
   .safe-top {
     padding-top: env(safe-area-inset-top, 0);
   }
 
-  /* Smooth scroll for menu */
   .smooth-scroll {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Glass effect for overlays */
   .glass {
     @apply bg-background/80 backdrop-blur-lg;
   }
 
-  /* Gradient text */
   .gradient-text {
     @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
   }
- @media (max-width: 380px) {
-    .btn-touch {
-      @apply min-h-10 px-3 text-[0.9rem];
-    }
-  }
-  
 }
+
 @keyframes slowZoom {
   0% { transform: scale(1.05); }
   100% { transform: scale(1.12); }

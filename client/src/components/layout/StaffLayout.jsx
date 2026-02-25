@@ -1,168 +1,111 @@
-import { Outlet, NavLink, useLocation, Navigate } from "react-router-dom";
-import {
-  User,
-  LayoutDashboard,
-  BellRing,
-  Table2,
-  Ticket,
-  Settings,
-  Shield,
-  UtensilsCrossed,
-} from "lucide-react";
+import { Outlet, useLocation, Navigate } from "react-router-dom";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-function cn(...classes) {
-  return classes.filter(Boolean).join(" ");
-}
-
-function useStaffTitle(pathname) {
-  if (pathname === "/staff") return "Overview";
-  if (pathname.startsWith("/staff/requests")) return "Service Requests";
-  if (pathname.startsWith("/staff/tables")) return "Tables";
-  if (pathname.startsWith("/staff/tickets")) return "Tickets";
-  if (pathname.startsWith("/staff/settings")) return "Settings";
-  if (pathname.startsWith("/staff/pay")) return "Payment";
-   if (pathname.startsWith("/staff/reservations")) return "Reservations";
-  return "Staff";
-}
+import StaffSidebar from "@/components/staff-layout/StaffSidebar";
+import StaffTopbar from "@/components/staff-layout/StaffTopbar";
+import StaffMobileNav from "@/components/staff-layout/StaffMobileNav";
+import { buildStaffNav, getStaffTitle } from "@/components/staff-layout/staffNav";
 
 export default function StaffLayout() {
   const { pathname } = useLocation();
   const { user, loading } = useAuth();
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+ const nav = useMemo(() => {
+  if (!user) return [];
+  return buildStaffNav(user);
+ }, [user]);
+  
   // ⏳ wait for getMe()
-  if (loading) {
-    return null; // or spinner
-  }
+  if (loading) return null;
 
   // 🔒 not logged in
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   // 🔐 force password change
-  if (user.mustChangePassword) {
-    return <Navigate to="/change-password" replace />;
-  }
-  console.log("🛡️ StaffLayout guard", {
-    mustChangePassword: user?.mustChangePassword,
-  });
-  const title = useStaffTitle(pathname);
+  if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
+ 
+ 
+
+  
+  const title = getStaffTitle(pathname);
 
   const displayName = user?.name || user?.email?.split("@")?.[0] || "Staff";
   const displayEmail = user?.email || "";
   const displayRole = user?.role
     ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
     : "Staff";
-  console.log("USER:", displayName, displayEmail, displayRole);
 
-  const linkClass = ({ isActive }) =>
-    cn(
-      "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
-      isActive
-        ? "bg-primary text-primary-foreground"
-        : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-    );
+
+
+  // Brand
+  const restaurantName = "AfroAsiatique";
+  const platformName = "AtUrService";
+
+    const statusItems = null;
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
-      {/* Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-border bg-card">
-        <div className="px-4 py-4 border-b border-border">
-          <div className="text-sm font-semibold">AtUrService</div>
-          <div className="text-xs text-muted-foreground">{displayRole}</div>
-        </div>
+    <div className="min-h-screen w-full bg-[hsl(220,20%,8%)] text-[hsl(40,20%,95%)]">
+      {/* Landing-inspired background layers */}
+      <div className="fixed inset-0 -z-10">
+        {/* Optional image layer (uncomment if you want the same photo vibe as landing) */}
+        {/* <img src="/hero-bg.jpeg" alt="" className="w-full h-full object-cover opacity-20" /> */}
 
-        <nav className="p-3 space-y-1">
-          <NavLink to="/staff" end className={linkClass}>
-            <LayoutDashboard className="h-4 w-4" />
-            Overview
-          </NavLink>
+        {/* Rich gradients */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(220,20%,5%)/85%] via-[hsl(220,20%,6%)/75%] to-[hsl(220,20%,5%)/95%]" />
+        <div className="absolute -top-24 left-1/2 h-[420px] w-[680px] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-[-120px] right-[-120px] h-[420px] w-[420px] rounded-full bg-primary/10 blur-3xl" />
 
-          <NavLink to="/staff/requests" className={linkClass}>
-            <BellRing className="h-4 w-4" />
-            Requests
-          </NavLink>
+        {/* subtle vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.55)_100%)]" />
+      </div>
 
-          <NavLink to="/staff/tables" className={linkClass}>
-            <Table2 className="h-4 w-4" />
-            Tables
-          </NavLink>
+      <div className="flex min-h-screen">
+        {/* Desktop sidebar */}
+        <StaffSidebar
+          restaurantName={restaurantName}
+          platformName={platformName}
+          roleLabel={displayRole}
+          userName={displayName}
+          userEmail={displayEmail}
+          nav={nav}
+        />
 
-          <NavLink to="/staff/tickets" className={linkClass}>
-            <Ticket className="h-4 w-4" />
-            Tickets
-          </NavLink>
-          <NavLink to="/staff/reservations" className={linkClass}>
-            <Settings className="h-4 w-4" />
-            Reservations
-          </NavLink>
+        {/* Main column */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <StaffTopbar
+            title={title}
+            userName={displayName}
+            roleLabel={displayRole}
+            restaurantName={restaurantName}
+            onOpenMobileMenu={() => setMobileMenuOpen(true)}
+             statusItems={statusItems}
+          />
 
-          <NavLink to="/staff/settings" className={linkClass}>
-            <Settings className="h-4 w-4" />
-            Settings
-          </NavLink>
-          {user.role === "admin" && (
-            <NavLink to="/staff/menu" className={linkClass}>
-              <UtensilsCrossed className="h-4 w-4" />
-              Menu Management
-            </NavLink>
-          )}
-          {user.role === "admin" && (
-            <NavLink to="/staff/users" className={linkClass}>
-              <Shield className="h-4 w-4" />
-              User Management
-            </NavLink>
-          )}
-             {user.role === "admin" && (
-            <NavLink to="/staff/finance" className={linkClass}>
-              <Shield className="h-4 w-4" />
-              Finance
-            </NavLink>
-          )}
-        </nav>
-
-        {/* Signed-in user */}
-        <div className="mt-auto p-4 border-t border-border">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">
-              <User className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm font-medium truncate">{displayName}</div>
-              <div className="text-xs text-muted-foreground truncate">
-                {displayEmail}
+          {/* Content area: keep pages unchanged; just give them a better stage */}
+          <main className="flex-1 p-3 md:p-6 pb-24 md:pb-6">
+            {/* Optional: consistent “stage” card wrapper for POS feel (safe; no logic change) */}
+            <div className="min-h-[calc(100vh-8rem)] rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
+              <div className="p-3 md:p-5">
+                <Outlet />
               </div>
             </div>
-          </div>
+          </main>
         </div>
-      </aside>
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col">
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-4">
-          <div className="md:hidden">
-            <NavLink to="/staff" className="text-sm font-semibold">
-              Staff
-            </NavLink>
-          </div>
-
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold">{title}</h1>
-          </div>
-
-          {/* Header user pill */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-full">
-            <User className="w-4 h-4" />
-            <span className="text-sm font-medium">{displayName}</span>
-            <span className="text-sm font-small">{displayRole}</span>
-          </div>
-        </header>
-
-        <main className="flex-1 p-4 md:p-6">
-          <Outlet />
-        </main>
       </div>
+
+      {/* Mobile bottom nav + More sheet */}
+      <StaffMobileNav
+        open={mobileMenuOpen}
+        onOpenChange={setMobileMenuOpen}
+        nav={nav}
+        userName={displayName}
+        roleLabel={displayRole}
+        restaurantName={restaurantName}
+        platformName={platformName}
+      />
     </div>
   );
 }
