@@ -74,7 +74,7 @@ function GlassCard({ className, ...props }) {
         "relative overflow-hidden rounded-2xl",
         "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
         "shadow-[0_10px_40px_rgba(0,0,0,0.35)]",
-        className
+        className,
       )}
       {...props}
     />
@@ -238,7 +238,10 @@ export default function StaffTableDetailPage() {
           <p className="text-muted-foreground">
             {mergedError || "Table not found"}
           </p>
-          <Button onClick={() => navigate("/staff/tables")} className="rounded-2xl">
+          <Button
+            onClick={() => navigate("/staff/tables")}
+            className="rounded-2xl"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Tables
           </Button>
@@ -275,7 +278,7 @@ export default function StaffTableDetailPage() {
               <Badge
                 className={cn(
                   "capitalize rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                  statusColors[table.status]
+                  statusColors[table.status],
                 )}
               >
                 {table.status}
@@ -352,7 +355,7 @@ export default function StaffTableDetailPage() {
                             "capitalize rounded-full border px-2 py-0.5 text-[11px] font-semibold",
                             reservation.status === "SEATED"
                               ? "bg-primary/10 border-primary/20 text-primary"
-                              : "bg-warning/10 border-warning/20 text-warning"
+                              : "bg-warning/10 border-warning/20 text-warning",
                           )}
                         >
                           {String(reservation.status).toLowerCase()}
@@ -460,12 +463,12 @@ export default function StaffTableDetailPage() {
                 open={showNewSessionDialog}
                 onOpenChange={setShowNewSessionDialog}
               >
-              <DialogTrigger asChild>
-  <Button className="h-12 rounded-2xl w-full justify-center gap-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-    <UserPlus className="h-5 w-5" />
-    <span className="font-semibold">Start Session</span>
-  </Button>
-</DialogTrigger>
+                <DialogTrigger asChild>
+                  <Button className="h-12 rounded-2xl w-full justify-center gap-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                    <UserPlus className="h-5 w-5" />
+                    <span className="font-semibold">Start Session</span>
+                  </Button>
+                </DialogTrigger>
 
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
@@ -532,7 +535,6 @@ export default function StaffTableDetailPage() {
                 onClick={handleCloseTable}
                 disabled={busyFree}
               >
-                <X className="w-5 h-5" />
                 <span>{busyFree ? "Closing…" : "Close Table"}</span>
               </Button>
             )}
@@ -616,7 +618,7 @@ export default function StaffTableDetailPage() {
                     <RefreshCw
                       className={cn(
                         "w-4 h-4 mr-1",
-                        loadingRequests && "animate-spin"
+                        loadingRequests && "animate-spin",
                       )}
                     />
                     Refresh
@@ -648,8 +650,8 @@ export default function StaffTableDetailPage() {
                       status === "DONE"
                         ? "bg-success/10 border-success/20 text-success"
                         : status === "IN_PROGRESS"
-                        ? "bg-primary/10 border-primary/20 text-primary"
-                        : "bg-warning/10 border-warning/20 text-warning";
+                          ? "bg-primary/10 border-primary/20 text-primary"
+                          : "bg-warning/10 border-warning/20 text-warning";
 
                     return (
                       <div
@@ -663,7 +665,7 @@ export default function StaffTableDetailPage() {
                               <span
                                 className={cn(
                                   "ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                                  statusPill
+                                  statusPill,
                                 )}
                               >
                                 {status}
@@ -690,7 +692,9 @@ export default function StaffTableDetailPage() {
                               size="sm"
                               variant="secondary"
                               className="rounded-2xl"
-                              onClick={() => updateRequestStatus(id, "IN_PROGRESS")}
+                              onClick={() =>
+                                updateRequestStatus(id, "IN_PROGRESS")
+                              }
                               disabled={status === "IN_PROGRESS"}
                             >
                               In progress
@@ -744,7 +748,7 @@ export default function StaffTableDetailPage() {
                       <RefreshCw
                         className={cn(
                           "w-4 h-4 mr-1",
-                          isGeneratingCode && "animate-spin"
+                          isGeneratingCode && "animate-spin",
                         )}
                       />
                       Regen
@@ -852,7 +856,9 @@ export default function StaffTableDetailPage() {
           {/* Table Info */}
           <GlassCard>
             <CardHeader className="pb-3">
-              <SectionTitle icon={UtensilsCrossed}>Table Information</SectionTitle>
+              <SectionTitle icon={UtensilsCrossed}>
+                Table Information
+              </SectionTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between gap-3">
@@ -874,7 +880,7 @@ export default function StaffTableDetailPage() {
                 <Badge
                   className={cn(
                     "capitalize rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                    statusColors[table.status]
+                    statusColors[table.status],
                   )}
                 >
                   {table.status}

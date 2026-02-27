@@ -1,7 +1,10 @@
 // src/components/staff/tables/StaffActiveTabCard.jsx
+import { useNavigate } from "react-router-dom";
 import { Receipt, Ticket, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
 import { Separator } from "@/components/ui/separator";
 
 import { useTab } from "@/contexts/TabContext/TabContext";
@@ -17,11 +20,15 @@ function statusPill(status) {
   return "bg-primary/10 border-primary/20 text-primary/80";
 }
 
+
 export default function StaffActiveTabCard() {
+  const navigate = useNavigate();
   const { tab, orderedLines, ticketsCount, status } = useTab();
 
   const totalCents = tab?.totalCents ?? 0;
   const ordered = Array.isArray(orderedLines) ? orderedLines : [];
+
+  const tabId = tab?._id;
 
   if (status === "loading") {
     return (
@@ -148,6 +155,16 @@ export default function StaffActiveTabCard() {
             </div>
           </div>
         )}
+          {/* Payment logic (unchanged) */}
+       {tabId &&
+  String(tab?.status).toUpperCase() === "OPEN" && (
+    <Button
+      className="mt-4 w-full rounded-2xl"
+      onClick={() => navigate(`/staff/pay/${tabId}`)}
+    >
+      Take Payment
+    </Button>
+)}
 
         <div className="mt-3 text-[11px] text-[hsl(40,10%,55%)] tracking-[0.18em] uppercase">
           AfroAsiatique • Live tab

@@ -40,7 +40,6 @@ export async function listTickets(req, res, next) {
   }
 }
 
-
 export async function updateTicketStatus(req, res, next) {
   try {
     const { ticketId } = req.params;
@@ -52,6 +51,9 @@ export async function updateTicketStatus(req, res, next) {
     });
 
     if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+    // ✅ Capture previous overall status for model hook notifications
+    ticket.$locals.prevStatus = ticket.status;
 
     if (status) ticket.status = status;
     if (etaMinutes !== undefined) ticket.etaMinutes = etaMinutes;
@@ -90,8 +92,7 @@ function computeTicketStatus(lines) {
   const statuses = lines.map((l) => l.status);
 
   if (statuses.every((s) => s === "DONE")) return "DONE";
-  if (statuses.some((s) => s === "PREPARING" || s === "DONE"))
-    return "PREPARING";
+  if (statuses.some((s) => s === "PREPARING" || s === "DONE")) return "PREPARING";
   return "NEW";
 }
 
@@ -112,6 +113,9 @@ export async function updateTicketLineStatus(req, res, next) {
 
     const line = ticket.lines.id(lineId);
     if (!line) return res.status(404).json({ message: "Line not found" });
+
+    // ✅ Capture previous overall status before recompute
+    ticket.$locals.prevStatus = ticket.status;
 
     line.status = status;
 

@@ -21,6 +21,9 @@ const ServicRequestSchema = new Schema(
       enum: ["OPEN", "IN_PROGRESS", "DONE"],
       default: "OPEN",
     },
+
+    urgent: { type: Boolean, default: false, index: true },
+
     createdAt: { type: Date, expires: "10d" }
   },
   { timestamps: true }

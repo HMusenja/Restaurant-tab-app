@@ -26,7 +26,7 @@ export function RealtimeProvider({ children }) {
   const guests = useRef(new Map()); // id -> { tableId, reloadTab, reloadTickets }
   const staffs = useRef(new Map()); // id -> { reloadTickets, reloadServices, reloadTables }
 
-  
+    const userNotifications = useRef(new Map());
 
   const api = useMemo(() => {
     return {
@@ -75,6 +75,25 @@ export function RealtimeProvider({ children }) {
         if (!id) return;
         staffs.current.delete(id);
       },
+          registerUserNotifications({ userId, onNew, onUpdate }) {
+        const id = randomId();
+
+        userNotifications.current.set(id, {
+          userId,
+          onNew,
+          onUpdate,
+        });
+
+        if (socket.connected && userId) {
+          socket.emit("user:join", { userId });
+        }
+
+        return id;
+      },
+
+      unregisterUserNotifications(id) {
+        userNotifications.current.delete(id);
+      },
     };
   }, []);
 
@@ -82,18 +101,32 @@ export function RealtimeProvider({ children }) {
   for (const [id, g] of guests.current.entries()) {
     if (g.reloadServices) debounced(`guest:${id}:services`, g.reloadServices, 150);
   }
-};
+  };
+  
 
   useEffect(() => {
-    const joinRooms = () => {
-      // if any staff is registered -> join staff room
+ const joinRooms = () => {
       if (staffs.current.size > 0) {
         socket.emit("staff:join");
       }
 
-      // join all guest table rooms
       for (const g of guests.current.values()) {
         if (g.tableId) socket.emit("table:join", { tableId: g.tableId });
+      }
+
+      for (const u of userNotifications.current.values()) {
+        if (u.userId) socket.emit("user:join", { userId: u.userId });
+      }
+ };
+    const onNotificationNew = (payload) => {
+      for (const u of userNotifications.current.values()) {
+        if (u.onNew) u.onNew(payload);
+      }
+    };
+
+    const onNotificationUpdate = (payload) => {
+      for (const u of userNotifications.current.values()) {
+        if (u.onUpdate) u.onUpdate(payload);
       }
     };
 
@@ -172,6 +205,9 @@ const runMenuAll = () => {
 
 
     // ---------- Staff events ----------
+    socket.on("notification:new", onNotificationNew);
+    socket.on("notification:update", onNotificationUpdate);
+
     socket.on("ticket:new", runStaffTickets);
     socket.on("ticket:updated", runStaffTickets);
 
@@ -190,11 +226,15 @@ socket.on("reservations:updated", runStaffTables);
 
     return () => {
       socket.off("connect", joinRooms);
+      
 
       socket.off("menu:updated", runMenuAll);
 
       socket.off("ticket:created", runGuestTickets);
       socket.off("ticket:updated", runGuestTickets);
+
+        socket.off("notification:new", onNotificationNew);
+      socket.off("notification:update", onNotificationUpdate);
 
       socket.off("service:created", runGuestServices);
 socket.off("service:updated", runGuestServices);

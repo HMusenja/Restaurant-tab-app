@@ -82,6 +82,7 @@ export async function createTicket(req, res, next) {
 
       if (existing) {
         existing.lines = mergeLines(existing.lines || [], items);
+          existing.markModified("lines");
         await existing.save();
         createdTickets.push(existing);
         return existing;

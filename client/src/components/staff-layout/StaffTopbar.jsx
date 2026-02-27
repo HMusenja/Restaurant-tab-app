@@ -3,20 +3,18 @@ import { User, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import StaffStatusStrip from "./StaffStatusStrip";
-
-StaffStatusStrip
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function StaffTopbar({
   title,
   userName,
   roleLabel,
   onOpenMobileMenu,
-    restaurantName = "AfroAsiatique",
+  restaurantName = "AfroAsiatique",
   statusItems,
-  
 }) {
   return (
-    <header className="sticky top-0 z-20 h-14 border-b border-border  bg-[hsl(220,20%,6%)]/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 h-14 border-b border-border bg-[hsl(220,20%,6%)]/70 backdrop-blur-xl">
       <div className="h-full px-3 md:px-4 flex items-center gap-3">
         {/* Mobile menu button */}
         <div className="md:hidden">
@@ -32,7 +30,7 @@ export default function StaffTopbar({
         </div>
 
         {/* Mobile brand shortcut */}
-       <NavLink
+        <NavLink
           to="/staff"
           className={cn("md:hidden text-sm font-semibold tracking-tight text-primary")}
         >
@@ -42,8 +40,11 @@ export default function StaffTopbar({
         {/* Title */}
         <div className="flex-1 min-w-0">
           <h1 className="text-base md:text-lg font-semibold truncate">{title}</h1>
-            <StaffStatusStrip items={statusItems} />
+          <StaffStatusStrip items={statusItems} />
         </div>
+
+        {/* Notifications */}
+        <NotificationBell />
 
         {/* User pill */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%]">

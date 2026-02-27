@@ -3,27 +3,30 @@ import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import http from "http";
+import jwt from "jsonwebtoken";
 import { Server as SocketIOServer } from "socket.io";
+import { setIO } from "./socket/ioStore.js";
 
 import { connectDB } from "./config/db.js";
+
 import guestRoutes from "./routes/guestRoutes.js";
 import menuRoutes from "./routes/menuRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
 import staffTickesRoutes from "./routes/staffTicketRoutes.js";
-import guestTicketsRoutes from "./routes/guestTicketsRoutes.js"
+import guestTicketsRoutes from "./routes/guestTicketsRoutes.js";
 import staffTableRoutes from "./routes/staffTableRoutes.js";
-import joinRoutes from "./routes/joinRoutes.js"
+import joinRoutes from "./routes/joinRoutes.js";
 import joinCodeRoutes from "./routes/joinCodeRoutes.js";
-import staffTabRoutes from "./routes/staffTabRoutes.js"
-import userRoutes from "./routes/userRoutes.js"
-import serviceRequestRoutes from "./routes/serviceRequetRoutes.js"
-import adminRoutes from "./routes/adminUserRoutes.js"
+import staffTabRoutes from "./routes/staffTabRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import serviceRequestRoutes from "./routes/serviceRequestRoutes.js";
+import adminRoutes from "./routes/adminUserRoutes.js";
 import reservationRoutes from "./routes/reservationRoutes.js";
-import uploadRoutes from "./routes/uploadRoutes.js"
+import uploadRoutes from "./routes/uploadRoutes.js";
 
-
-
-
+// NEW
+import notificationRoutes from "./routes/notificationRoutes.js";
+import meNotificationPreferencesRoutes from "./routes/meNotificationPreferencesRoutes.js";
 
 dotenv.config();
 
@@ -46,9 +49,63 @@ const io = new SocketIOServer(server, {
   },
 });
 
+setIO(io);
+
+/**
+ * Try to extract token from:
+ * - socket.handshake.auth.token (preferred)
+ * - Authorization header "Bearer <token>"
+ * - cookie "token=<token>"
+ */
+function getSocketToken(socket) {
+  const authToken = socket.handshake?.auth?.token;
+  if (authToken) return authToken;
+
+  const authHeader = socket.handshake?.headers?.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.split(" ")[1];
+  }
+
+  const cookieHeader = socket.handshake?.headers?.cookie || "";
+  // naive cookie parse for token=
+  const parts = cookieHeader.split(";").map((p) => p.trim());
+  const tokenPart = parts.find((p) => p.startsWith("token="));
+  if (tokenPart) return decodeURIComponent(tokenPart.replace("token=", ""));
+
+  return null;
+}
+
+// Auth middleware for sockets (non-breaking: unauth sockets still connect, but won't join user rooms)
+io.use((socket, next) => {
+  try {
+    const token = getSocketToken(socket);
+    if (!token) {
+      socket.user = null;
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // your REST uses decoded.userId
+    const userId = decoded.userId;
+    const role = decoded.role || null;
+
+    if (!userId) {
+      socket.user = null;
+      return next();
+    }
+
+    socket.user = { id: String(userId), role };
+    next();
+  } catch {
+    socket.user = null;
+    next();
+  }
+});
+
 io.on("connection", (socket) => {
   console.log("🔌 socket connected:", socket.id);
 
+  // Existing rooms (keep)
   socket.on("staff:join", () => {
     socket.join("staff");
     console.log("👩‍🍳 staff joined room: staff");
@@ -58,6 +115,27 @@ io.on("connection", (socket) => {
     if (!tableId) return;
     socket.join(`table:${tableId}`);
     console.log(`🍽️ table joined room: table:${tableId}`);
+  });
+
+  // NEW: notification rooms (auto join if authenticated)
+  if (socket.user?.id) {
+    socket.join(`user:${socket.user.id}`);
+    console.log(`🔔 joined room: user:${socket.user.id}`);
+  }
+  if (socket.user?.role) {
+    socket.join(`role:${socket.user.role}`);
+    console.log(`🔔 joined room: role:${socket.user.role}`);
+  }
+
+  // Optional: allow client to request extra role rooms (admin dashboards)
+  socket.on("notifications:join", ({ roles } = {}) => {
+    if (!Array.isArray(roles)) return;
+    roles.forEach((r) => {
+      if (typeof r === "string" && r.trim()) {
+        socket.join(`role:${r}`);
+        console.log(`🔔 joined room: role:${r}`);
+      }
+    });
   });
 
   socket.on("disconnect", () => {
@@ -93,8 +171,8 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true, message: "API is running 🚀" });
 });
 
-app.use("/api", adminRoutes)
-app.use("/api", userRoutes)
+app.use("/api", adminRoutes);
+app.use("/api", userRoutes);
 app.use("/api", guestRoutes);
 app.use("/api", menuRoutes);
 app.use("/api", ticketRoutes);
@@ -104,24 +182,20 @@ app.use("/api", staffTableRoutes);
 app.use("/api", staffTabRoutes);
 app.use("/api", joinRoutes);
 app.use("/api", joinCodeRoutes);
-app.use("/api", serviceRequestRoutes)
+app.use("/api", serviceRequestRoutes);
 app.use("/api/staff/reservations", reservationRoutes);
 app.use("/api", uploadRoutes);
 
-
-
-
-
-
-
+// NEW routes
+app.use("/api", notificationRoutes);
+app.use("/api", meNotificationPreferencesRoutes);
 
 // ----------------------------------
-// 404 + Error handling
+// Error handling
 // ----------------------------------
 app.use((err, req, res, next) => {
   console.error("❌ Server error:", err);
 
-  // Handle duplicate email nicely (Mongo unique index)
   if (err?.code === 11000) {
     return res.status(400).json({ message: "Email already in use." });
   }
@@ -130,7 +204,6 @@ app.use((err, req, res, next) => {
     message: err.message || "Server error",
   });
 });
-
 
 // ----------------------------------
 // Start server

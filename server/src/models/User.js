@@ -19,6 +19,12 @@ const UserSchema = new Schema(
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
+
+    notificationPreferences: {
+    soundEnabled: { type: Boolean, default: true },
+    vibrationEnabled: { type: Boolean, default: true },
+    urgentEnabled: { type: Boolean, default: true },
+  },
   },
   { timestamps: true },
 );

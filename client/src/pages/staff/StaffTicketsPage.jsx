@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 import {
@@ -315,7 +316,7 @@ export default function StaffTicketsPage() {
         </div>
 
         <div className="flex flex-col items-center gap-3">
-          <div className="flex flex-col items-center gap-3">
+          {/* <div className="flex flex-col items-center gap-3">
             <span className="text-xs text-[hsl(40,10%,70%)]">
               Show Completed
             </span>
@@ -333,7 +334,17 @@ export default function StaffTicketsPage() {
                 )}
               />
             </button>
+          </div> */}
+          <div className="flex items-center justify-between sm:justify-start gap-3 rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] px-3 py-2 w-full sm:w-auto">
+            <Switch
+              checked={showDone}
+              onCheckedChange={(value) => setShowDone(value)}
+            />
+            <span className="text-sm text-[hsl(40,10%,70%)]">
+              Show Completed
+            </span>
           </div>
+
           <div
             className={cn(
               "flex items-center gap-2 transition-all duration-300",
