@@ -18,27 +18,42 @@ function metricKey(metric) {
   return "grossEUR";
 }
 
-export default function FinanceTrendCard({ trend, metric, groupBy, yTick, xTick }) {
+export default function FinanceTrendCard({
+  trend,
+  metric,
+  groupBy,
+  yTick,
+  xTick,
+}) {
   const data = Array.isArray(trend) ? trend : [];
 
   return (
-    <Card className="shadow-soft">
+    <Card className="shadow-soft min-w-0">
       <CardHeader>
         <CardTitle>Trend ({groupBy})</CardTitle>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="min-w-0">
         {data.length === 0 ? (
           <div className="text-sm text-muted-foreground">No data in range.</div>
         ) : (
-          <div className="h-[260px] sm:h-[280px] w-full">
-            <ResponsiveContainer>
+          <div className="w-full min-w-0">
+            <ResponsiveContainer width="100%" aspect={2.2}>
               <AreaChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" />
+
                 <XAxis dataKey="bucket" tickFormatter={xTick} />
+
                 <YAxis tickFormatter={yTick} />
+
                 <Tooltip content={<MoneyTooltip />} />
-                <Area type="monotone" dataKey={metricKey(metric)} />
+
+                <Area
+                  type="monotone"
+                  dataKey={metricKey(metric)}
+                  stroke="hsl(var(--primary))"
+                  fill="hsl(var(--primary) / 0.2)"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>

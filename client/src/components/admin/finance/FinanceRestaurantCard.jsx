@@ -3,7 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatEUR } from "@/utils/financeFormatters";
 
-export default function FinanceRestaurantCard({ perRestaurant, loading }) {
+export default function FinanceRestaurantCard({
+  perRestaurant,
+  loading,
+  brandPrefix = "Afro",
+  brandSuffix = "Asiatique",
+}) {
   const rows = Array.isArray(perRestaurant) ? perRestaurant : [];
 
   return (
@@ -26,7 +31,9 @@ export default function FinanceRestaurantCard({ perRestaurant, loading }) {
               >
                 <div className="min-w-0">
                   <div className="font-medium truncate">
-                    {r.restaurantId === "default" ? "Default" : r.restaurantId}
+                    {/* {r.restaurantId === "default" ? "Default" : r.restaurantId} */}
+                    <span className="text-primary">{brandPrefix}</span>
+                    <span className="text-foreground">{brandSuffix}</span>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {r.count} tabs · Avg {formatEUR(r.avgCents)}
@@ -45,9 +52,9 @@ export default function FinanceRestaurantCard({ perRestaurant, loading }) {
         )}
 
         <Separator className="my-4" />
-        <div className="text-xs text-muted-foreground">
+        {/* <div className="text-xs text-muted-foreground">
           Until restaurants are modeled, everything shows as “Default”.
-        </div>
+        </div> */}
       </CardContent>
     </Card>
   );

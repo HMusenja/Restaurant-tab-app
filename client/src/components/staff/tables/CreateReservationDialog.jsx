@@ -1,5 +1,5 @@
 // src/components/staff/tables/CreateReservationDialog.jsx
-import { UserPlus } from "lucide-react";
+import { AlertTriangle, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,66 +17,93 @@ import {
   staffFieldClass,
   staffTextareaClass,
 } from "@/lib/staffUi";
+import { cn } from "@/lib/utils";
+
+const EMPTY_FORM = {
+  name: "",
+  phone: "",
+  partySize: "2",
+  date: "",
+  time: "",
+  notes: "",
+};
 
 export default function CreateReservationDialog({
   open,
   onOpenChange,
   tableBackendStatus,
-  resForm,
+  resForm = EMPTY_FORM,
   setResForm,
-  busyCreateReservation,
+  busyCreateReservation = false,
   onCreate,
+  showTrigger = true,
+  triggerClassName = "",
 }) {
+  const isOccupied = String(tableBackendStatus).toUpperCase() === "OCCUPIED";
+
+  const form = { ...EMPTY_FORM, ...(resForm || {}) };
+
+  const updateField = (key, value) => {
+    if (typeof setResForm !== "function") return;
+    setResForm((prev) => ({
+      ...EMPTY_FORM,
+      ...(prev || {}),
+      [key]: value,
+    }));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
-          <UserPlus className="w-4 h-4 mr-2" />
-          Create Reservation (any day)
-        </Button>
-      </DialogTrigger>
+      {showTrigger ? (
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn("w-full rounded-2xl", triggerClassName)}
+          >
+            <UserPlus className="mr-2 h-4 w-4" />
+            Create Reservation
+          </Button>
+        </DialogTrigger>
+      ) : null}
 
-      <DialogContent className={staffDialogContentClass()}>
+      <DialogContent
+        className={cn(staffDialogContentClass(), "w-[calc(100vw-1rem)] max-w-lg")}
+      >
         <DialogHeader>
           <DialogTitle>Create Reservation</DialogTitle>
-          <DialogDescription className="text-[hsl(40,15%,58%)]
-">
-            Staff can reserve for any day (including when table is occupied).
+          <DialogDescription className="text-[hsl(40,15%,58%)]">
+            Staff can reserve for any day, including when the table is currently occupied.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 py-2">
+        <div className="space-y-4 py-2">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+            <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
               Name
             </label>
             <input
               className={staffFieldClass()}
               placeholder="Guest name"
-              value={resForm.name}
-              onChange={(e) =>
-                setResForm((p) => ({ ...p, name: e.target.value }))
-              }
+              value={form.name}
+              onChange={(e) => updateField("name", e.target.value)}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+            <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
               Phone
             </label>
             <input
               className={staffFieldClass()}
               placeholder="Phone number"
-              value={resForm.phone}
-              onChange={(e) =>
-                setResForm((p) => ({ ...p, phone: e.target.value }))
-              }
+              value={form.phone}
+              onChange={(e) => updateField("phone", e.target.value)}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+              <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
                 Party Size
               </label>
               <input
@@ -84,68 +111,82 @@ export default function CreateReservationDialog({
                 min="1"
                 className={staffFieldClass()}
                 placeholder="2"
-                value={resForm.partySize}
-                onChange={(e) =>
-                  setResForm((p) => ({ ...p, partySize: e.target.value }))
-                }
+                value={form.partySize}
+                onChange={(e) => updateField("partySize", e.target.value)}
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+              <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
                 Date
               </label>
               <input
                 type="date"
                 className={staffFieldClass()}
-                value={resForm.date}
-                onChange={(e) =>
-                  setResForm((p) => ({ ...p, date: e.target.value }))
-                }
+                value={form.date}
+                onChange={(e) => updateField("date", e.target.value)}
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
-              Time
-            </label>
-            <input
-              type="time"
-              className={staffFieldClass()}
-              value={resForm.time}
-              onChange={(e) =>
-                setResForm((p) => ({ ...p, time: e.target.value }))
-              }
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
+                Time
+              </label>
+              <input
+                type="time"
+                className={staffFieldClass()}
+                value={form.time}
+                onChange={(e) => updateField("time", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
+                Status
+              </label>
+              <div
+                className={cn(
+                  "flex h-11 items-center rounded-2xl border px-4 text-sm",
+                  isOccupied
+                    ? "border-warning/30 bg-warning/10 text-warning"
+                    : "border-border bg-background text-muted-foreground"
+                )}
+              >
+                {isOccupied ? "Table currently occupied" : "Table available"}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-[hsl(40,25%,78%)] tracking-wide">
+            <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
               Notes
             </label>
             <textarea
               className={staffTextareaClass()}
-              placeholder="Optional notes (e.g., window seat)"
+              placeholder="Optional notes (e.g. birthday, window seat)"
               rows={3}
-              value={resForm.notes}
-              onChange={(e) =>
-                setResForm((p) => ({ ...p, notes: e.target.value }))
-              }
+              value={form.notes}
+              onChange={(e) => updateField("notes", e.target.value)}
             />
           </div>
 
-          {tableBackendStatus === "OCCUPIED" ? (
-            <div className="text-xs 
-text-muted-foreground dark:text-[hsl(40,10%,60%)]">
-              Note: This table is currently occupied. You can still book for
-              later today or future days. Reservation time is what matters.
+          {isOccupied ? (
+            <div className="rounded-2xl border border-warning/20 bg-warning/10 px-3 py-3 text-xs text-muted-foreground dark:text-[hsl(40,10%,60%)]">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                <span>
+                  This table is currently occupied. You can still create a reservation
+                  for later today or a future date. Reservation time is what matters.
+                </span>
+              </div>
             </div>
           ) : null}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange?.(false)}>
             Cancel
           </Button>
           <Button onClick={onCreate} disabled={busyCreateReservation}>
