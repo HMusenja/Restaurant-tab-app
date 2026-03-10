@@ -136,7 +136,8 @@ export default function CreateReservationDialog({
           </div>
 
           {tableBackendStatus === "OCCUPIED" ? (
-            <div className="text-xs text-[hsl(40,10%,60%)]">
+            <div className="text-xs 
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">
               Note: This table is currently occupied. You can still book for
               later today or future days. Reservation time is what matters.
             </div>

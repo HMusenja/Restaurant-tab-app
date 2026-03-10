@@ -31,15 +31,18 @@ export default function TempPasswordModal({ open, onOpenChange, creds }) {
       <DialogContent className={cn(adminCardClass("sm:max-w-md p-5"))}>
         <DialogHeader>
           <DialogTitle className="text-[hsl(40,20%,95%)]">Temporary Password</DialogTitle>
-          <DialogDescription className="text-[hsl(40,10%,60%)]">
+          <DialogDescription className="
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">
             Share this password with the new user. They may be forced to change it on first login.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,10%)]/50 p-3">
+          <div className="rounded-2xl border 
+border-border dark:border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,10%)]/50 p-3">
             <div className="text-sm font-medium text-[hsl(40,20%,92%)]">{creds?.name || "—"}</div>
-            <div className="text-xs text-[hsl(40,10%,60%)]">{creds?.email || "—"}</div>
+            <div className="text-xs 
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">{creds?.email || "—"}</div>
           </div>
 
           <div className="space-y-2">

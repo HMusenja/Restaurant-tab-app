@@ -137,32 +137,40 @@ export default function UserDetailModal({
       <DialogContent className={cn(adminCardClass("sm:max-w-lg p-5"))}>
         <DialogHeader>
           <DialogTitle className="text-[hsl(40,20%,95%)]">User Details</DialogTitle>
-          <DialogDescription className="text-[hsl(40,10%,60%)]">
+          <DialogDescription className="
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">
             View and manage this staff account.
           </DialogDescription>
         </DialogHeader>
 
         {!user ? (
-          <div className="text-sm text-[hsl(40,10%,60%)]">No user selected.</div>
+          <div className="text-sm 
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">No user selected.</div>
         ) : (
           <div className="space-y-5">
             {/* Quick meta */}
             <div className={cn(adminPanelClass(), "p-3")}>
               <div className="text-sm font-medium text-[hsl(40,20%,92%)]">{user.name || "—"}</div>
-              <div className="text-xs text-[hsl(40,10%,60%)]">{user.email || "—"}</div>
+              <div className="text-xs 
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">{user.email || "—"}</div>
 
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                <span className="px-2 py-1 rounded-full bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)] border border-[hsl(40,20%,95%)/10%]">
+                <span className="px-2 py-1 rounded-full bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)] border 
+border-border dark:border-[hsl(40,20%,95%)/10%]">
                   Role: {user.role || "—"}
                 </span>
-                <span className="px-2 py-1 rounded-full bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)] border border-[hsl(40,20%,95%)/10%]">
+                <span className="px-2 py-1 rounded-full bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)] border 
+border-border dark:border-[hsl(40,20%,95%)/10%]">
                   Status: {isActive ? "Active" : "Disabled"}
                 </span>
-                <span className="px-2 py-1 rounded-full bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)] border border-[hsl(40,20%,95%)/10%]">
+                <span className="px-2 py-1 rounded-full bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)] border 
+border-border dark:border-[hsl(40,20%,95%)/10%]">
                   Must change PW: {user.mustChangePassword ? "Yes" : "No"}
                 </span>
                 {isDeleted ? (
-                  <span className="px-2 py-1 rounded-full bg-[hsl(0,0%,100%)/6%] text-[hsl(40,10%,60%)] border border-[hsl(40,20%,95%)/10%]">
+                  <span className="px-2 py-1 rounded-full bg-[hsl(0,0%,100%)/6%] 
+text-muted-foreground dark:text-[hsl(40,10%,60%)] border 
+border-border dark:border-[hsl(40,20%,95%)/10%]">
                     Deleted
                   </span>
                 ) : null}
@@ -242,7 +250,8 @@ export default function UserDetailModal({
               {/* Danger zone */}
               <div className="rounded-2xl border border-destructive/25 bg-destructive/5 p-3">
                 <div className="text-sm font-medium text-[hsl(40,20%,92%)]">Danger zone</div>
-                <div className="text-xs text-[hsl(40,10%,60%)] mt-1">
+                <div className="text-xs 
+text-muted-foreground dark:text-[hsl(40,10%,60%)] mt-1">
                   Soft-delete hides the user and disables login. You can restore later.
                 </div>
 
@@ -285,7 +294,8 @@ export default function UserDetailModal({
                   )}
 
                   {(isSelf || user.role === "admin") && !isDeleted && (
-                    <div className="text-xs text-[hsl(40,10%,60%)] self-center sm:ml-2">
+                    <div className="text-xs 
+text-muted-foreground dark:text-[hsl(40,10%,60%)] self-center sm:ml-2">
                       {isSelf ? "You can’t delete your own account." : "Admin accounts can’t be deleted."}
                     </div>
                   )}

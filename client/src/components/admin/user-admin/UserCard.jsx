@@ -1,4 +1,3 @@
-// src/components/admin/UserCard.jsx
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { User as UserIcon } from "lucide-react";
@@ -11,34 +10,48 @@ export default function UserCard({ user, onToggle, onOpen }) {
     ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
     : "Staff";
 
-  const isActive = user?.isActive !== false; // safe default
+  const isDeleted = Boolean(user?.deletedAt) || Boolean(user?.isDeleted);
+
+  const isActive =
+    typeof user?.active === "boolean"
+      ? user.active
+      : typeof user?.isActive === "boolean"
+        ? user.isActive
+        : typeof user?.enabled === "boolean"
+          ? user.enabled
+          : typeof user?.disabled === "boolean"
+            ? !user.disabled
+            : true;
 
   return (
     <div
       className={cn(
         adminPanelClass(),
-        "p-4 cursor-pointer",
-        "hover:bg-[hsl(220,20%,10%)]/50 transition",
+        "cursor-pointer p-4 transition hover:bg-muted/40"
       )}
       onClick={() => onOpen?.(user)}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && onOpen?.(user)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onOpen?.(user);
+      }}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="h-10 w-10 rounded-2xl bg-[hsl(40,20%,95%)/8%] border border-[hsl(40,20%,95%)/10%] flex items-center justify-center shrink-0">
-            <UserIcon className="h-5 w-5 text-[hsl(40,20%,85%)]" />
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border bg-muted/40">
+            <UserIcon className="h-5 w-5 text-muted-foreground" />
           </div>
 
           <div className="min-w-0">
-            <div className="font-medium truncate text-[hsl(40,20%,92%)]">{displayName}</div>
-            <div className="text-sm text-[hsl(40,10%,60%)] truncate">{user?.email || "—"}</div>
+            <div className="truncate font-medium text-foreground">{displayName}</div>
+            <div className="truncate text-sm text-muted-foreground">
+              {user?.email || "—"}
+            </div>
 
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <Badge
                 variant="secondary"
-                className="bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,70%)]"
+                className="border border-border bg-muted/40 text-muted-foreground"
               >
                 {roleLabel}
               </Badge>
@@ -46,15 +59,18 @@ export default function UserCard({ user, onToggle, onOpen }) {
               <Badge
                 className={cn(
                   isActive
-                    ? "bg-success/15 text-success border border-success/20"
-                    : "bg-destructive/15 text-destructive border border-destructive/20",
+                    ? "border border-success/20 bg-success/15 text-success"
+                    : "border border-destructive/20 bg-destructive/15 text-destructive"
                 )}
               >
                 {isActive ? "Active" : "Disabled"}
               </Badge>
 
-              {user?.isDeleted ? (
-                <Badge className="bg-[hsl(0,0%,100%)/6%] text-[hsl(40,10%,60%)] border border-[hsl(40,20%,95%)/10%]">
+              {isDeleted ? (
+                <Badge
+                  variant="secondary"
+                  className="border border-border bg-muted/40 text-muted-foreground"
+                >
                   Deleted
                 </Badge>
               ) : null}
@@ -64,7 +80,7 @@ export default function UserCard({ user, onToggle, onOpen }) {
 
         <Button
           size="sm"
-          className="rounded-2xl shrink-0"
+          className="shrink-0"
           variant={isActive ? "destructive" : "default"}
           onClick={(e) => {
             e.stopPropagation();

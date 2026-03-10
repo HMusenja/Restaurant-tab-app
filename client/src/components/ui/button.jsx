@@ -5,59 +5,61 @@ import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  [
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md",
-    // Responsive base text (mobile slightly larger for readability)
-    "text-[0.95rem] sm:text-sm font-medium",
-    "transition-colors",
-    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-    "disabled:pointer-events-none disabled:opacity-50",
-    // Icons
-    "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-  ].join(" "),
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap  text-xs sm:text-sm font-semibold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98] leading-none",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        default:
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-soft",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-soft",
         outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/70",
-
-        link: "text-primary underline-offset-4 hover:underline",
+          "border-2 border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline px-0 h-auto",
+        success:
+          "bg-success text-success-foreground hover:bg-success/90 shadow-soft",
+        warning:
+          "bg-warning text-warning-foreground hover:bg-warning/90 shadow-soft",
       },
       size: {
-        // ✅ Mobile-first touch targets (>=44px), then shrink back at sm+
-        default: "h-11 sm:h-9 px-4 py-2",
-        sm: "h-10 sm:h-8 rounded-md px-3 text-[0.9rem] sm:text-xs",
-        lg: "h-12 sm:h-10 rounded-md px-8",
-        icon: "h-11 w-11 sm:h-9 sm:w-9",
-        // Optional extra sizes if you want later:
-        // xl: "h-14 rounded-md px-10 text-base",
-        // "icon-sm": "h-10 w-10 sm:h-9 sm:w-9",
+        default: "h-10 px-4 py-2 sm:h-11 sm:px-5",
+        sm: "h-9 px-3 text-xs sm:h-10 sm:px-4",
+        lg: "h-11 px-5 text-sm sm:h-12 sm:px-6 sm:text-base",
+        xl: "h-12 px-6 text-sm sm:h-14 sm:px-8 sm:text-lg",
+        icon: "h-10 w-10 sm:h-12 sm:w-12",
+        "icon-sm": "h-8 w-8 sm:h-10 sm:w-10",
+      },
+      fullWidthMobile: {
+        true: "w-full sm:w-auto",
+        false: "",
       },
     },
     defaultVariants: {
       variant: "default",
       size: "default",
+      fullWidthMobile: false,
     },
   }
 );
 
-const Button = React.forwardRef(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
-);
-Button.displayName = "Button";
+const Button = React.forwardRef(function Button(
+  { className, variant, size, asChild = false, fullWidthMobile, ...props },
+  ref
+) {
+  const Comp = asChild ? Slot : "button";
+
+  return (
+    <Comp
+      className={cn(
+        buttonVariants({ variant, size, fullWidthMobile, className })
+      )}
+      ref={ref}
+      {...props}
+    />
+  );
+});
 
 export { Button, buttonVariants };

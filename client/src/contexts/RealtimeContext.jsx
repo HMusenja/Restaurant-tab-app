@@ -22,17 +22,15 @@ function randomId() {
 export function RealtimeProvider({ children }) {
   const debounced = useMemo(() => createDebounceMap(), []);
 
-  // ✅ allow many registrations (no overwriting)
-  const guests = useRef(new Map()); // id -> { tableId, reloadTab, reloadTickets }
-  const staffs = useRef(new Map()); // id -> { reloadTickets, reloadServices, reloadTables }
-
-    const userNotifications = useRef(new Map());
+  const guests = useRef(new Map()); // id -> { tableId, reloadTab, reloadTickets, reloadServices, reloadMenu }
+  const staffs = useRef(new Map()); // id -> { reloadTickets, reloadServices, reloadTables, reloadMenu }
+  const userNotifications = useRef(new Map());
 
   const api = useMemo(() => {
     return {
       registerGuest({ tableId, reloadTab, reloadTickets, reloadServices, reloadMenu }) {
-
         const id = randomId();
+
         guests.current.set(id, {
           tableId: tableId || null,
           reloadTab: reloadTab || null,
@@ -53,8 +51,9 @@ export function RealtimeProvider({ children }) {
         guests.current.delete(id);
       },
 
-      registerStaff({ reloadTickets, reloadServices, reloadTables,reloadMenu }) {
+      registerStaff({ reloadTickets, reloadServices, reloadTables, reloadMenu }) {
         const id = randomId();
+
         staffs.current.set(id, {
           reloadTickets: reloadTickets || null,
           reloadServices: reloadServices || null,
@@ -69,13 +68,12 @@ export function RealtimeProvider({ children }) {
         return id;
       },
 
-      
-
       unregisterStaff(id) {
         if (!id) return;
         staffs.current.delete(id);
       },
-          registerUserNotifications({ userId, onNew, onUpdate }) {
+
+      registerUserNotifications({ userId, onNew, onUpdate }) {
         const id = randomId();
 
         userNotifications.current.set(id, {
@@ -97,15 +95,8 @@ export function RealtimeProvider({ children }) {
     };
   }, []);
 
-  const runGuestServices = () => {
-  for (const [id, g] of guests.current.entries()) {
-    if (g.reloadServices) debounced(`guest:${id}:services`, g.reloadServices, 150);
-  }
-  };
-  
-
   useEffect(() => {
- const joinRooms = () => {
+    const joinRooms = () => {
       if (staffs.current.size > 0) {
         socket.emit("staff:join");
       }
@@ -117,7 +108,8 @@ export function RealtimeProvider({ children }) {
       for (const u of userNotifications.current.values()) {
         if (u.userId) socket.emit("user:join", { userId: u.userId });
       }
- };
+    };
+
     const onNotificationNew = (payload) => {
       for (const u of userNotifications.current.values()) {
         if (u.onNew) u.onNew(payload);
@@ -131,21 +123,21 @@ export function RealtimeProvider({ children }) {
     };
 
     const runGuestMenu = () => {
-  for (const [id, g] of guests.current.entries()) {
-    if (g.reloadMenu) debounced(`guest:${id}:menu`, g.reloadMenu, 180);
-  }
-};
+      for (const [id, g] of guests.current.entries()) {
+        if (g.reloadMenu) debounced(`guest:${id}:menu`, g.reloadMenu, 180);
+      }
+    };
 
-const runStaffMenu = () => {
-  for (const [id, s] of staffs.current.entries()) {
-    if (s.reloadMenu) debounced(`staff:${id}:menu`, s.reloadMenu, 180);
-  }
-};
+    const runStaffMenu = () => {
+      for (const [id, s] of staffs.current.entries()) {
+        if (s.reloadMenu) debounced(`staff:${id}:menu`, s.reloadMenu, 180);
+      }
+    };
 
-const runMenuAll = () => {
-  runGuestMenu();
-  runStaffMenu();
-};
+    const runMenuAll = () => {
+      runGuestMenu();
+      runStaffMenu();
+    };
 
     const runGuestTickets = () => {
       for (const [id, g] of guests.current.entries()) {
@@ -157,6 +149,18 @@ const runMenuAll = () => {
       for (const [id, g] of guests.current.entries()) {
         if (g.reloadTab) debounced(`guest:${id}:tab`, g.reloadTab, 120);
       }
+    };
+
+    const runGuestServices = () => {
+      for (const [id, g] of guests.current.entries()) {
+        if (g.reloadServices) debounced(`guest:${id}:services`, g.reloadServices, 150);
+      }
+    };
+
+    const runGuestTableSession = () => {
+      runGuestTab();
+      runGuestTickets();
+      runGuestServices();
     };
 
     const runStaffTickets = () => {
@@ -189,67 +193,55 @@ const runMenuAll = () => {
       runStaffAll();
     };
 
-    // join rooms on connect
+    const onTablesUpdated = () => {
+      runGuestTableSession();
+      runStaffTables();
+    };
+
     socket.on("connect", joinRooms);
 
-    // ---------- Guest events ----------
+    // Guest
     socket.on("ticket:created", runGuestTickets);
     socket.on("ticket:updated", runGuestTickets);
-
     socket.on("tab:updated", onTabUpdated);
-
     socket.on("service:created", runGuestServices);
     socket.on("service:updated", runGuestServices);
-    
     socket.on("menu:updated", runMenuAll);
+    socket.on("tables:updated", onTablesUpdated);
 
-
-    // ---------- Staff events ----------
+    // Staff
     socket.on("notification:new", onNotificationNew);
     socket.on("notification:update", onNotificationUpdate);
-
     socket.on("ticket:new", runStaffTickets);
     socket.on("ticket:updated", runStaffTickets);
-
     socket.on("service:new", runStaffServices);
     socket.on("service:updated", runStaffServices);
-
     socket.on("tickets:updated", runStaffTickets);
     socket.on("services:updated", runStaffServices);
-    socket.on("tables:updated", runStaffTables);
+    socket.on("tables:updated", onTablesUpdated);
+    socket.on("reservations:updated", runStaffTables);
 
-    // ---------- Reservations (Staff) ----------
-socket.on("reservations:updated", runStaffTables);
-
-    // if already connected, join once
     if (socket.connected) joinRooms();
 
     return () => {
       socket.off("connect", joinRooms);
-      
-
-      socket.off("menu:updated", runMenuAll);
 
       socket.off("ticket:created", runGuestTickets);
       socket.off("ticket:updated", runGuestTickets);
-
-        socket.off("notification:new", onNotificationNew);
-      socket.off("notification:update", onNotificationUpdate);
-
-      socket.off("service:created", runGuestServices);
-socket.off("service:updated", runGuestServices);
-
       socket.off("tab:updated", onTabUpdated);
+      socket.off("service:created", runGuestServices);
+      socket.off("service:updated", runGuestServices);
+      socket.off("menu:updated", runMenuAll);
+      socket.off("tables:updated", onTablesUpdated);
 
+      socket.off("notification:new", onNotificationNew);
+      socket.off("notification:update", onNotificationUpdate);
       socket.off("ticket:new", runStaffTickets);
       socket.off("ticket:updated", runStaffTickets);
-
       socket.off("service:new", runStaffServices);
       socket.off("service:updated", runStaffServices);
-
       socket.off("tickets:updated", runStaffTickets);
       socket.off("services:updated", runStaffServices);
-      socket.off("tables:updated", runStaffTables);
       socket.off("reservations:updated", runStaffTables);
     };
   }, [debounced]);

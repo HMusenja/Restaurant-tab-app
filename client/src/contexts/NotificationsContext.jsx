@@ -29,6 +29,18 @@ function atKey(at) {
   }
 }
 
+function normalizePreferences(data) {
+  if (!data) return null;
+  const p = data?.preferences || data?.notificationPreferences || data;
+  if (!p || typeof p !== "object") return null;
+
+  return {
+    soundEnabled: !!p.soundEnabled,
+    vibrationEnabled: !!p.vibrationEnabled,
+    urgentEnabled: !!p.urgentEnabled,
+  };
+}
+
 export function NotificationsProvider({ children }) {
   const { user } = useAuth();
   const rt = useRealtime();
@@ -46,6 +58,9 @@ export function NotificationsProvider({ children }) {
   const [error, setError] = useState("");
 
   const nextCursorRef = useRef(null);
+
+  // ✅ prevents stuck loadingPreferences if calls overlap
+  const prefsLoadSeqRef = useRef(0);
 
   // ------------------------
   // Load Inbox
@@ -113,7 +128,9 @@ export function NotificationsProvider({ children }) {
     setError("");
 
     const now = new Date().toISOString();
-    setNotifications((prev) => prev.map((n) => (!n.readAt ? { ...n, readAt: now } : n)));
+    setNotifications((prev) =>
+      prev.map((n) => (!n.readAt ? { ...n, readAt: now } : n))
+    );
     setUnreadCount(0);
 
     try {
@@ -164,36 +181,63 @@ export function NotificationsProvider({ children }) {
   }
 
   // ------------------------
-  // Preferences
+  // Preferences (FIXED)
   // ------------------------
-  async function loadPreferences() {
-    if (!user) return;
-    setLoadingPreferences(true);
+  async function loadPreferences({ silent = false } = {}) {
+    // Always make sure loadingPreferences can’t remain stuck true
+    if (!user) {
+      if (!silent) setLoadingPreferences(false);
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const seq = ++prefsLoadSeqRef.current;
+
+    if (!silent) setLoadingPreferences(true);
+    setError("");
+
     try {
       const data = await fetchNotificationPreferences();
-      setPreferences(data?.preferences || null);
-    } catch {
-      setPreferences(null);
+      const normalized = normalizePreferences(data);
+      setPreferences(normalized);
+      return { ok: true, preferences: normalized };
+    } catch (e) {
+      const msg = e?.message || "Failed to load notification preferences";
+      setError(msg);
+      return { ok: false, error: msg };
     } finally {
-      setLoadingPreferences(false);
+      // ✅ only the latest load call is allowed to clear loading
+      if (!silent && seq === prefsLoadSeqRef.current) {
+        setLoadingPreferences(false);
+      }
     }
   }
 
-  async function updatePreferences(patch) {
-    if (!user) return;
+  async function updatePreferences(patchBody) {
+    if (!user) return { ok: false, error: "Not authenticated" };
 
     setBusy(true);
     setError("");
 
-    const optimistic = { ...(preferences || {}), ...patch };
+    const prev = preferences;
+    const optimistic = { ...(preferences || {}), ...(patchBody || {}) };
     setPreferences(optimistic);
 
     try {
-      const data = await patchNotificationPreferences(patch);
-      setPreferences(data?.preferences || optimistic);
+      const data = await patchNotificationPreferences(patchBody || {});
+      const normalized = normalizePreferences(data) || optimistic;
+      setPreferences(normalized);
+      return { ok: true, preferences: normalized };
     } catch (e) {
-      setError(e?.message || "Failed to update preferences");
-      loadPreferences();
+      const msg = e?.message || "Failed to update preferences";
+      setError(msg);
+
+      // rollback immediately
+      setPreferences(prev || null);
+
+      // reload silently to ensure server truth
+      await loadPreferences({ silent: true });
+
+      return { ok: false, error: msg };
     } finally {
       setBusy(false);
     }
@@ -236,7 +280,6 @@ export function NotificationsProvider({ children }) {
 
           if (!updated.readAt) setUnreadCount((c) => c + 1);
 
-          // 🔥 highlight newest update line reliably
           const updates = updated?.metadata?.updates || [];
           const last = updates.length ? updates[updates.length - 1] : null;
 
@@ -255,16 +298,19 @@ export function NotificationsProvider({ children }) {
           return;
         }
 
-        // fallback minimal updates
         if (payload.id) {
           setNotifications((prev) =>
-            prev.map((n) => (n._id === payload.id ? { ...n, readAt: payload.readAt } : n))
+            prev.map((n) =>
+              n._id === payload.id ? { ...n, readAt: payload.readAt } : n
+            )
           );
           if (typeof payload.unreadCount === "number") setUnreadCount(payload.unreadCount);
         }
 
         if (payload.markAll) {
-          setNotifications((prev) => prev.map((n) => ({ ...n, readAt: payload.readAt })));
+          setNotifications((prev) =>
+            prev.map((n) => ({ ...n, readAt: payload.readAt }))
+          );
           setUnreadCount(0);
         }
 

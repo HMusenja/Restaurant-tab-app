@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { getMe } from "../api/authApi";
+import { getMe,logoutUser as logout } from "../api/authApi";
 
 const AuthContext = createContext(null);
 
@@ -18,12 +18,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const logoutUser = async () => {
+  try {
+    await logout();
+    setUser(null);
+  } catch (error) {
+    console.error("Logout failed", error);
+  }
+};
+
   useEffect(() => {
     fetchUser();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading,fetchUser }}>
+    <AuthContext.Provider value={{ user, setUser, loading,fetchUser,logoutUser }}>
       {children}
     </AuthContext.Provider>
   );

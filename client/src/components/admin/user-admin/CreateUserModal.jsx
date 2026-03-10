@@ -80,7 +80,8 @@ export default function CreateUserModal({ open, onOpenChange, onCreate }) {
       <DialogContent className={cn(adminCardClass("sm:max-w-lg p-5"))}>
         <DialogHeader>
           <DialogTitle className="text-[hsl(40,20%,95%)]">Create User</DialogTitle>
-          <DialogDescription className="text-[hsl(40,10%,60%)]">
+          <DialogDescription className="
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">
             Create a staff account. Non-admin users may be forced to change password on first login.
           </DialogDescription>
         </DialogHeader>

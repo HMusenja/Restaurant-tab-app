@@ -36,7 +36,8 @@ export default function StaffMobileNav({
   return (
     <>
       {/* Bottom ops bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/70 backdrop-blur-xl">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t 
+border-border dark:border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/70 backdrop-blur-xl">
         <div className="h-16 px-2 flex items-stretch gap-1">
           {nav.mobilePrimary.map((item) => {
             const Icon = item.icon;
@@ -69,7 +70,8 @@ export default function StaffMobileNav({
 
       {/* More menu sheet */}
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="w-[320px] sm:w-[360px] bg-[hsl(220,20%,6%)] text-[hsl(40,20%,95%)] border-[hsl(40,20%,95%)/10%]">
+        <SheetContent side="left" className="w-[320px] sm:w-[360px] bg-[hsl(220,20%,6%)] text-[hsl(40,20%,95%)] 
+border-border dark:border-[hsl(40,20%,95%)/10%]">
           <SheetHeader>
             <SheetTitle className="flex items-center justify-between">
               <span className="text-[hsl(40,20%,95%)]">Staff Menu</span>
@@ -78,7 +80,8 @@ export default function StaffMobileNav({
           </SheetHeader>
 
           {/* Brand block */}
-          <div className="mt-4 rounded-2xl bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] p-4">
+          <div className="mt-4 rounded-2xl bg-[hsl(40,20%,95%)/6%] border 
+border-border dark:border-[hsl(40,20%,95%)/10%] p-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center">
                 <UtensilsCrossed className="h-5 w-5 text-primary" />
@@ -94,7 +97,8 @@ export default function StaffMobileNav({
             <Separator className="my-3 bg-[hsl(40,20%,95%)/10%]" />
 
             <div className="text-sm font-medium truncate">{userName}</div>
-            <div className="text-xs text-[hsl(40,10%,60%)]">Signed in</div>
+            <div className="text-xs 
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">Signed in</div>
           </div>
 
           <Separator className="my-4 bg-[hsl(40,20%,95%)/10%]" />

@@ -1,7 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Bell, Moon, Sun, Volume2, Smartphone, Zap } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -9,90 +15,95 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { useNotifications } from "@/contexts/NotificationsContext";
+import { useUiPreferences } from "@/contexts/UiPreferencesContext";
 import { toast } from "sonner";
 
 function glassCardClass(extra = "") {
   return cn(
-    "rounded-3xl border border-[hsl(40,20%,95%)/10%]",
-    "bg-[hsl(220,20%,8%)/70%] backdrop-blur-xl",
-    "shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.45)]",
-    extra,
+    "rounded-3xl border",
+    // ✅ light mode glass
+    "border-border/60 bg-card/70 backdrop-blur-xl",
+    "shadow-[0_10px_40px_rgba(0,0,0,0.10)]",
+    // ✅ dark mode glass (keeps your old vibe)
+    "dark:border-border dark:border-[hsl(40,20%,95%)/10%] dark:bg-[hsl(220,20%,8%)/70%]",
+    "dark:shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.45)]",
+    extra
   );
 }
 
 function rowClass(extra = "") {
   return cn(
     "flex items-center justify-between gap-4",
-    "rounded-2xl border border-[hsl(40,20%,95%)/8%]",
-    "bg-[hsl(220,20%,10%)]/40",
-    "px-4 py-3",
-    "min-h-[52px]",
-    extra,
+    "rounded-2xl border px-4 py-3 min-h-[52px]",
+    // ✅ light mode row
+    "border-border/60 bg-muted/40",
+    // ✅ dark mode row (your old values)
+    "dark:border-[hsl(40,20%,95%)/8%] dark:bg-[hsl(220,20%,10%)]/40",
+    extra
   );
 }
 
 function leftLabelClass() {
   return cn(
     "flex items-center gap-2",
-    "text-[hsl(40,20%,92%)]",
-    "text-sm sm:text-[0.95rem]",
-    "leading-tight",
+    "text-sm sm:text-[0.95rem] leading-tight",
+    // ✅ readable in both themes
+    "text-foreground dark:text-[hsl(40,20%,92%)]"
   );
 }
 
 function helperTextClass() {
-  return "text-xs text-[hsl(40,10%,60%)]";
+  // ✅ better light contrast; keep your dark tone
+  return "text-xs text-muted-foreground dark:text-[hsl(40,10%,60%)]";
 }
 
 export default function StaffSettingsPage() {
-  const { preferences, loadingPreferences, busy, error, updatePreferences } = useNotifications();
+  const {
+    preferences,
+    loadingPreferences,
+    busy,
+    error,
+    loadPreferences,
+    updatePreferences,
+  } = useNotifications();
 
-  // Local UI-only switches (appearance section remains non-persistent for now)
-  const [darkMode, setDarkMode] = useState(false);
-  const [compact, setCompact] = useState(false);
+  const { darkMode, compact, setDarkMode, setCompact } = useUiPreferences();
 
-  // Toast on error changes (don’t spam)
+  useEffect(() => {
+    loadPreferences?.();
+  }, [loadPreferences]);
+
   const lastErrorRef = useRef("");
   useEffect(() => {
     if (!error) return;
     if (error === lastErrorRef.current) return;
     lastErrorRef.current = error;
 
-    toast({
-      title: "Could not update notifications",
-      description: error,
-      variant: "destructive",
-    });
+    toast.error("Could not update notifications", { description: error });
   }, [error]);
 
   const setPref = async (patch, label) => {
-    // updatePreferences already does optimistic + rollback on error
-    await updatePreferences(patch);
-
-    // If it failed, error toast will show via effect above.
-    // If it succeeded, show success toast.
-    toast({
-      title: "Saved",
-      description: label,
-    });
+    const res = await updatePreferences(patch);
+    if (res?.ok) toast.success("Saved", { description: label });
   };
 
   const soundEnabled = !!preferences?.soundEnabled;
   const vibrationEnabled = !!preferences?.vibrationEnabled;
   const urgentEnabled = !!preferences?.urgentEnabled;
 
-  const disabled = loadingPreferences || busy;
+  const isInitialLoading = loadingPreferences && !preferences;
+  const disabled = busy || isInitialLoading;
 
   return (
     <div className="w-full max-w-2xl space-y-4 sm:space-y-6">
       {/* Notifications */}
       <Card className={glassCardClass()}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-[hsl(40,20%,95%)]">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2  text-foreground dark:text-[hsl(40,20%,95%)]">
             <Bell className="w-5 h-5 text-primary" />
             Notifications
           </CardTitle>
-          <CardDescription className="text-[hsl(40,10%,60%)]">
+          <CardDescription className={cn(helperTextClass(), "text-sm")}>
             Configure how you receive alerts for new requests
           </CardDescription>
         </CardHeader>
@@ -101,7 +112,7 @@ export default function StaffSettingsPage() {
           <div className={rowClass()}>
             <div className="min-w-0">
               <Label htmlFor="sound" className={leftLabelClass()}>
-                <Volume2 className="w-4 h-4 text-[hsl(40,10%,70%)]" />
+                <Volume2 className="w-4 h-4 text-muted-foreground dark:text-[hsl(40,10%,70%)]" />
                 <span className="truncate">Sound alerts</span>
               </Label>
               <div className={helperTextClass()}>
@@ -114,7 +125,10 @@ export default function StaffSettingsPage() {
               checked={soundEnabled}
               disabled={disabled}
               onCheckedChange={(checked) =>
-                setPref({ soundEnabled: !!checked }, checked ? "Sound alerts enabled" : "Sound alerts disabled")
+                setPref(
+                  { soundEnabled: !!checked },
+                  checked ? "Sound alerts enabled" : "Sound alerts disabled"
+                )
               }
             />
           </div>
@@ -122,12 +136,10 @@ export default function StaffSettingsPage() {
           <div className={rowClass()}>
             <div className="min-w-0">
               <Label htmlFor="vibrate" className={leftLabelClass()}>
-                <Smartphone className="w-4 h-4 text-[hsl(40,10%,70%)]" />
+                <Smartphone className="w-4 h-4 text-muted-foreground dark:text-[hsl(40,10%,70%)]" />
                 <span className="truncate">Vibration</span>
               </Label>
-              <div className={helperTextClass()}>
-                Vibrate on supported devices
-              </div>
+              <div className={helperTextClass()}>Vibrate on supported devices</div>
             </div>
 
             <Switch
@@ -146,7 +158,7 @@ export default function StaffSettingsPage() {
           <div className={rowClass()}>
             <div className="min-w-0">
               <Label htmlFor="urgent" className={leftLabelClass()}>
-                <Zap className="w-4 h-4 text-[hsl(40,10%,70%)]" />
+                <Zap className="w-4 h-4 text-muted-foreground dark:text-[hsl(40,10%,70%)]" />
                 <span className="truncate">Urgent request alerts</span>
               </Label>
               <div className={helperTextClass()}>
@@ -167,22 +179,23 @@ export default function StaffSettingsPage() {
             />
           </div>
 
-          <Separator className="bg-[hsl(40,20%,95%)/10%] my-2" />
+          <Separator className="my-2 bg-border/60 dark:bg-[hsl(40,20%,95%)/10%]" />
 
-          <div className="text-xs text-[hsl(40,10%,55%)]">
-            Tip: If you’re on iOS and sounds feel quiet, make sure the device is not in silent mode.
+          <div className={cn(helperTextClass(), "text-xs")}>
+            Tip: If you’re on iOS and sounds feel quiet, make sure the device is not
+            in silent mode.
           </div>
         </CardContent>
       </Card>
 
-      {/* Appearance (UI-only for now) */}
+      {/* Appearance */}
       <Card className={glassCardClass()}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-[hsl(40,20%,95%)]">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2  text-foreground dark:text-[hsl(40,20%,95%)]">
             <Sun className="w-5 h-5 text-primary" />
             Appearance
           </CardTitle>
-          <CardDescription className="text-[hsl(40,10%,60%)]">
+          <CardDescription className={cn(helperTextClass(), "text-sm")}>
             Customize the dashboard appearance
           </CardDescription>
         </CardHeader>
@@ -191,13 +204,14 @@ export default function StaffSettingsPage() {
           <div className={rowClass()}>
             <div className="min-w-0">
               <Label htmlFor="dark" className={leftLabelClass()}>
-                <Moon className="w-4 h-4 text-[hsl(40,10%,70%)]" />
+                <Moon className="w-4 h-4 text-muted-foreground dark:text-[hsl(40,10%,70%)]" />
                 <span className="truncate">Dark mode</span>
               </Label>
               <div className={helperTextClass()}>
                 Use the dark theme for low-light environments
               </div>
             </div>
+
             <Switch
               id="dark"
               checked={darkMode}
@@ -214,6 +228,7 @@ export default function StaffSettingsPage() {
                 Reduce spacing to see more content
               </div>
             </div>
+
             <Switch
               id="compact"
               checked={compact}
@@ -221,9 +236,9 @@ export default function StaffSettingsPage() {
             />
           </div>
 
-          <Separator className="bg-[hsl(40,20%,95%)/10%] my-2" />
+          <Separator className="my-2 bg-border/60 dark:bg-[hsl(40,20%,95%)/10%]" />
 
-          <div className="text-xs text-[hsl(40,10%,55%)]">
+          <div className={cn(helperTextClass(), "text-xs")}>
             These are UI preferences only (no effect on restaurant data).
           </div>
         </CardContent>
@@ -232,7 +247,7 @@ export default function StaffSettingsPage() {
       {/* Optional sticky action bar (pure UI) */}
       <div className="sticky bottom-3 z-10">
         <div className={cn(glassCardClass(), "p-3 flex items-center justify-between gap-3")}>
-          <div className="text-xs text-[hsl(40,10%,60%)]">
+          <div className={cn(helperTextClass(), "text-xs")}>
             Notification changes apply instantly.
           </div>
           <Button className="rounded-2xl px-5" disabled>

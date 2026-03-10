@@ -28,7 +28,17 @@ export default function StaffStatusStrip({ className, items }) {
     <div className={cn("hidden md:flex items-center gap-2", className)}>
       {/* Default “POS vibe” indicators (static, UI-only) */}
       <Pill icon={Wifi}>Live</Pill>
-      <Pill icon={Sparkles} className="text-[hsl(40,20%,92%)] bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%]">
+
+      {/* Ops pill: theme-aware for light-mode visibility */}
+      <Pill
+        icon={Sparkles}
+        className={cn(
+          // ✅ light mode
+          "bg-card/90 border-border text-foreground/80 shadow-sm ring-1 ring-black/5",
+          // ✅ dark mode (keep your original look)
+          "dark:text-[hsl(40,20%,92%)] dark:bg-[hsl(40,20%,95%)/6%]  dark:border-[hsl(40,20%,95%)/10%] dark:shadow-none dark:ring-0"
+        )}
+      >
         Ops
       </Pill>
 

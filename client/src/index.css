@@ -43,9 +43,39 @@
 
     --radius: 1rem;
 
+    /* ------------------------------------------------------------ */
+    /* Global typography scale (mobile-first) */
+    /* - Base is 16px on mobile for readability
+    /* - Slightly fluid up from tablet/desktop */
+    /* ------------------------------------------------------------ */
+
+    /* Core body sizes */
+    --fs-base: 16px; /* mobile baseline */
+    --fs-sm: 14px;
+    --fs-xs: 12.5px;
+
+    /* Headings / emphasis */
+    --fs-lg: 18px;
+    --fs-xl: 20px;
+    --fs-2xl: 24px;
+
+    /* Line heights */
+    --lh-tight: 1.15;
+    --lh-normal: 1.35;
+    --lh-relaxed: 1.55;
+
     /* Global button typography control */
     --btn-font-size: 16px; /* iOS zoom-safe baseline */
     --btn-line-height: 1.15;
+
+    /* ------------------------------------------------------------ */
+    /* UI density tokens (used by compact mode) */
+    /* ------------------------------------------------------------ */
+    --ui-pad: 1rem;
+    --ui-gap: 1rem;
+    --ui-card-pad: 1rem;
+    --ui-row-py: 0.75rem;
+    --ui-row-px: 1rem;
   }
 
   .dark {
@@ -74,8 +104,54 @@
     --ring: 32 95% 50%;
   }
 
+  /* ------------------------------------------------------------ */
+  /* Root font sizing:
+     - Lock 16px on phones (fix “too small”)
+     - Fluid scaling only on wider screens
+  /* ------------------------------------------------------------ */
+
   html {
-    font-size: clamp(15px, 0.9vw + 12px, 16px);
+    font-size: 16px; /* ✅ mobile baseline */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* ✅ Compact mode: density only (does not touch colors/theme vars) */
+  html.ui-compact {
+    --ui-pad: 0.75rem;
+    --ui-gap: 0.75rem;
+    --ui-card-pad: 0.75rem;
+    --ui-row-py: 0.5rem;
+    --ui-row-px: 0.875rem;
+  }
+
+  /* Tablet+ : slight fluid scaling */
+  @media (min-width: 768px) {
+    html {
+      font-size: clamp(16px, 0.35vw + 14px, 18px);
+    }
+  }
+
+  /* Desktop+ : a bit more room */
+  @media (min-width: 1024px) {
+    html {
+      font-size: clamp(16px, 0.45vw + 14px, 19px);
+    }
+  }
+
+  /* Make type scale slightly fluid on larger screens */
+  @media (min-width: 768px) {
+    :root {
+      --fs-base: clamp(16px, 0.2vw + 15px, 17px);
+      --fs-sm: clamp(14px, 0.15vw + 13px, 15px);
+      --fs-xs: clamp(12.5px, 0.1vw + 12px, 13px);
+
+      --fs-lg: clamp(18px, 0.25vw + 16px, 19px);
+      --fs-xl: clamp(20px, 0.3vw + 18px, 22px);
+      --fs-2xl: clamp(24px, 0.5vw + 20px, 28px);
+
+      --btn-font-size: 16px; /* keep zoom-safe */
+    }
   }
 
   * {
@@ -85,40 +161,42 @@
   body {
     @apply bg-background text-foreground antialiased;
     text-rendering: optimizeLegibility;
+    font-size: var(--fs-base);
+    line-height: var(--lh-normal);
+  }
+
+  /* Sensible defaults for common text elements */
+  p,
+  li,
+  label {
+    line-height: var(--lh-normal);
+  }
+
+  small {
+    font-size: var(--fs-xs);
+    line-height: var(--lh-normal);
+  }
+
+  h1 {
+    font-size: var(--fs-2xl);
+    line-height: var(--lh-tight);
+    letter-spacing: -0.01em;
+  }
+
+  h2 {
+    font-size: var(--fs-xl);
+    line-height: var(--lh-tight);
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-size: var(--fs-lg);
+    line-height: var(--lh-tight);
   }
 
   /* ------------------------------------------------------------ */
-  /* Responsive Button Typography */
+  /* Responsive Button Typography (keep iOS zoom-safe) */
   /* ------------------------------------------------------------ */
-
-  /* Very small devices */
-  @media (max-width: 380px) {
-    :root {
-      --btn-font-size: 16px;
-    }
-  }
-
-  /* Mobile */
-  @media (min-width: 381px) and (max-width: 767px) {
-    :root {
-      --btn-font-size: 16px;
-    }
-  }
-
-  /* Tablet */
-  @media (min-width: 768px) {
-    :root {
-      --btn-font-size: 0.975rem;
-    }
-  }
-
-  /* Desktop */
-  @media (min-width: 1024px) {
-    :root {
-      --btn-font-size: 1rem;
-    }
-  }
-
   button,
   [role="button"],
   input[type="button"],
@@ -138,14 +216,13 @@
   }
 
   /* ------------------------------------------------------------ */
-  /* Responsive form controls (inputs / textarea / select) */
+  /* iOS zoom prevention + form controls */
   /* ------------------------------------------------------------ */
-
   @media (max-width: 640px) {
     input,
     textarea,
     select {
-      font-size: 16px; /* prevent iOS zoom */
+      font-size: 16px; /* ✅ prevent iOS zoom */
     }
   }
 
@@ -161,12 +238,13 @@
     border: 1px solid hsl(var(--input));
     outline: none;
     appearance: none;
+    line-height: 1.2;
   }
 
   textarea {
     min-height: 6.5rem;
     resize: vertical;
-    line-height: 1.35;
+    line-height: var(--lh-relaxed);
   }
 
   input::placeholder,
@@ -239,11 +317,44 @@
   .gradient-text {
     @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
   }
+  /* KPI / stat number: prevents overflow on mobile cards */
+  .kpi-value {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+
+    /* allow shrink inside flex/grid cards */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    /* responsive sizing */
+    font-size: clamp(1.05rem, 2.8vw, 1.35rem);
+  }
+
+  /* KPI label under number */
+  .kpi-label {
+    font-size: clamp(0.68rem, 2.1vw, 0.78rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1.1;
+    opacity: 0.75;
+  }
+
+  /* When a card uses flex/grid, children need min-w-0 to shrink text */
+  .min-w-0 {
+    min-width: 0;
+  }
 }
 
 @keyframes slowZoom {
-  0% { transform: scale(1.05); }
-  100% { transform: scale(1.12); }
+  0% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1.12);
+  }
 }
 
 .animate-slow-zoom {

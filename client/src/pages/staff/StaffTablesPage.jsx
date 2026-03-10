@@ -88,8 +88,18 @@ function FilterPill({ active, children, onClick }) {
       className={cn(
         "px-4 py-2 rounded-full text-sm font-medium transition-all capitalize whitespace-nowrap border",
         active
-          ? "bg-primary/20 text-[hsl(40,20%,95%)] border-primary/25"
-          : "bg-[hsl(40,20%,95%)/4%] text-[hsl(40,10%,70%)] border-[hsl(40,20%,95%)/10%] hover:bg-[hsl(40,20%,95%)/6%]"
+          ? cn(
+              // ✅ light mode active
+              "bg-primary/10 text-foreground border-primary/25 shadow-sm",
+              // ✅ dark mode active
+              "dark:bg-primary/20 text-foreground dark:text-[hsl(40,20%,95%)] dark:border-primary/25"
+            )
+          : cn(
+              // ✅ light mode inactive
+              "bg-card/80 text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground",
+              // ✅ dark mode inactive
+              "dark:bg-[hsl(40,20%,95%)/4%] dark:text-[hsl(40,10%,70%)] dark:border-[hsl(40,20%,95%)/10%] dark:hover:bg-[hsl(40,20%,95%)/6%]"
+            )
       )}
     >
       {children}
@@ -134,9 +144,12 @@ function EmptySelectionPanel() {
   return (
     <Card
       className={cn(
-        "rounded-2xl overflow-hidden",
-        "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
-        "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+        "rounded-2xl overflow-hidden border backdrop-blur-xl",
+        // ✅ light
+        "border-border bg-card/85 shadow-sm",
+        // ✅ dark (original)
+        " dark:border-[hsl(40,20%,95%)/10%] dark:bg-[hsl(220,20%,6%)]/45",
+        "dark:shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
       )}
     >
       <CardHeader className="pb-2">
@@ -145,10 +158,10 @@ function EmptySelectionPanel() {
             <UtensilsCrossed className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-base text-[hsl(40,20%,95%)]">
+            <CardTitle className="text-base  text-foreground dark:text-[hsl(40,20%,95%)]">
               AfroAsiatique
             </CardTitle>
-            <div className="text-xs text-[hsl(40,10%,60%)]">
+            <div className="text-xs text-muted-foreground  dark:text-[hsl(40,10%,60%)]">
               Select a table to preview
             </div>
           </div>
@@ -156,7 +169,15 @@ function EmptySelectionPanel() {
       </CardHeader>
 
       <CardContent className="pt-0">
-        <div className="rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] p-4 text-sm text-[hsl(40,10%,70%)]">
+        <div
+          className={cn(
+            "rounded-2xl border p-4 text-sm",
+            // ✅ light
+            "border-border bg-muted/30 text-muted-foreground",
+            // ✅ dark
+            " dark:border-[hsl(40,20%,95%)/10%]  dark:bg-[hsl(40,20%,95%)/4%] dark:text-[hsl(40,10%,70%)]"
+          )}
+        >
           On tablet/desktop, you’ll get a quick preview panel here. On mobile,
           tap a table to open details.
         </div>
@@ -171,61 +192,78 @@ function SelectionPanel({ table, onOpenDetails, onAssign }) {
   return (
     <Card
       className={cn(
-        "rounded-2xl overflow-hidden",
-        "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
-        "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+        "rounded-2xl overflow-hidden border backdrop-blur-xl",
+        // ✅ light
+        "border-border bg-card/85 shadow-sm",
+        // ✅ dark (original)
+        " dark:border-[hsl(40,20%,95%)/10%] dark:bg-[hsl(220,20%,6%)]/45",
+        "dark:shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
       )}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle className="text-base text-[hsl(40,20%,95%)]">
+            <CardTitle className="text-base  text-foreground dark:text-[hsl(40,20%,95%)]">
               {table.name}
             </CardTitle>
-            <div className="mt-1 text-xs text-[hsl(40,10%,60%)] font-mono">
+            <div className="mt-1 text-xs text-muted-foreground  dark:text-[hsl(40,10%,60%)] font-mono">
               Code: {table.code}
             </div>
           </div>
 
-          <span className={cn("inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold capitalize", badgeClass)}>
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-semibold capitalize",
+              badgeClass
+            )}
+          >
             {table.status}
           </span>
         </div>
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
-        <div className="rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] p-4 space-y-2">
+        <div
+          className={cn(
+            "rounded-2xl border p-4 space-y-2",
+            // ✅ light
+            "border-border bg-muted/30",
+            // ✅ dark
+            "border-border dark:border-[hsl(40,20%,95%)/10%]  dark:bg-[hsl(40,20%,95%)/4%]"
+          )}
+        >
           {table.status === "reserved" && table.reservation ? (
             <>
-              <div className="text-sm font-semibold text-[hsl(40,20%,95%)]">
+              <div className="text-sm font-semibold text-foreground  dark:text-[hsl(40,20%,95%)]">
                 {table.reservation.name} • {table.reservation.partySize} guests
               </div>
-              <div className="text-xs text-[hsl(40,10%,60%)]">
+              <div className="text-xs text-muted-foreground  dark:text-[hsl(40,10%,60%)]">
                 For:{" "}
                 {new Date(table.reservation.reservedFor).toLocaleTimeString("de-DE", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
               </div>
-              <div className="text-xs text-[hsl(40,10%,60%)]">
+              <div className="text-xs text-muted-foreground  dark:text-[hsl(40,10%,60%)]">
                 Reservation: {table.reservation.status}
               </div>
             </>
           ) : table.status === "occupied" ? (
             <>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[hsl(40,10%,60%)]">Guests</span>
-                <span className="inline-flex items-center gap-2 font-semibold text-[hsl(40,20%,95%)]">
+                <span className="text-muted-foreground dark:
+ dark:text-[hsl(40,10%,60%)]">Guests</span>
+                <span className="inline-flex items-center gap-2 font-semibold  text-foreground dark:text-[hsl(40,20%,95%)]">
                   <Users className="h-4 w-4 text-primary/80" />
                   {typeof table.guests === "number" ? table.guests : "—"}
                 </span>
               </div>
 
-              <Separator className="bg-[hsl(40,20%,95%)/10%]" />
+              <Separator className="bg-border/60 dark:bg-[hsl(40,20%,95%)/10%]" />
 
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[hsl(40,10%,60%)]">Tab total</span>
-                <span className="font-semibold text-[hsl(40,20%,95%)]">
+                <span className="text-muted-foreground dark: dark:text-[hsl(40,10%,60%)]">Tab total</span>
+                <span className="font-semibold text-foreground dark:text-[hsl(40,20%,95%)]">
                   {typeof table.tabTotalCents === "number"
                     ? formatEUR(table.tabTotalCents)
                     : "—"}
@@ -233,14 +271,14 @@ function SelectionPanel({ table, onOpenDetails, onAssign }) {
               </div>
 
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[hsl(40,10%,60%)]">Session</span>
-                <span className="font-semibold text-[hsl(40,20%,95%)]">
+                <span className="text-muted-foreground dark: dark:text-[hsl(40,10%,60%)]">Session</span>
+                <span className="font-semibold  text-foreground dark:text-[hsl(40,20%,95%)]">
                   {getSessionDuration(table.assignedAt)}
                 </span>
               </div>
             </>
           ) : (
-            <div className="text-sm text-[hsl(40,10%,70%)]">
+            <div className="text-sm text-muted-foreground dark:text-[hsl(40,10%,70%)]">
               This table is free. You can assign it when guests arrive.
             </div>
           )}
@@ -254,7 +292,13 @@ function SelectionPanel({ table, onOpenDetails, onAssign }) {
           {table.status === "available" ? (
             <Button
               variant="secondary"
-              className="rounded-2xl bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] hover:bg-[hsl(40,20%,95%)/10%]"
+              className={cn(
+                "rounded-2xl border",
+                // ✅ light
+                "bg-card/90 border-border hover:bg-muted/60",
+                // ✅ dark
+                "dark:bg-[hsl(40,20%,95%)/6%] border-border dark:border-[hsl(40,20%,95%)/10%] dark:hover:bg-[hsl(40,20%,95%)/10%]"
+              )}
               onClick={onAssign}
             >
               Assign table
@@ -262,7 +306,7 @@ function SelectionPanel({ table, onOpenDetails, onAssign }) {
           ) : null}
         </div>
 
-        <div className="text-[11px] text-[hsl(40,10%,55%)] tracking-[0.18em] uppercase">
+        <div className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground dark:text-[hsl(40,10%,55%)]">
           AfroAsiatique • Live Ops
         </div>
       </CardContent>
@@ -348,6 +392,7 @@ export default function StaffTablesPage() {
       setError(e?.message || "Failed to create table");
     }
   };
+ 
 
   return (
     <div className="space-y-5">
@@ -357,10 +402,10 @@ export default function StaffTablesPage() {
           <div className="text-xs tracking-[0.28em] uppercase text-primary/70">
             AfroAsiatique
           </div>
-          <h2 className="text-lg md:text-xl font-semibold tracking-tight text-[hsl(40,20%,95%)]">
+          <h2 className="text-lg md:text-xl font-semibold tracking-tight text-foreground dark:text-[hsl(40,20%,95%)]">
             Floor — Tables
           </h2>
-          <div className="mt-1 text-xs text-[hsl(40,10%,60%)]">
+          <div className="mt-1 text-xs text-muted-foreground dark:text-[hsl(40,10%,60%)]">
             Assign, monitor, and open table sessions
           </div>
         </div>
@@ -372,7 +417,13 @@ export default function StaffTablesPage() {
             onClick={reloadTables}
             disabled={loading}
             aria-label="Refresh tables"
-            className="h-9 w-9 rounded-xl text-[hsl(40,20%,92%)] hover:bg-[hsl(40,20%,95%)/8%]"
+            className={cn(
+              "h-9 w-9 rounded-xl",
+              // ✅ light
+              "text-foreground hover:bg-muted/60",
+              // ✅ dark
+              "dark:text-[hsl(40,20%,92%)] dark:hover:bg-[hsl(40,20%,95%)/8%]"
+            )}
           >
             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
           </Button>
@@ -412,11 +463,11 @@ export default function StaffTablesPage() {
           {/* Tables Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
             {loading ? (
-              <div className="col-span-full py-10 text-sm text-[hsl(40,10%,60%)]">
+              <div className="col-span-full py-10 text-sm text-muted-foreground dark: dark:text-[hsl(40,10%,60%)]">
                 Loading…
               </div>
             ) : filteredTables.length === 0 ? (
-              <div className="col-span-full py-10 text-sm text-[hsl(40,10%,60%)]">
+              <div className="col-span-full py-10 text-sm text-muted-foreground dark: dark:text-[hsl(40,10%,60%)]">
                 No tables in this category.
               </div>
             ) : (
@@ -427,21 +478,22 @@ export default function StaffTablesPage() {
                   <Card
                     key={table.id}
                     onClick={() => {
-                      // UI-only selection for split view + keep navigation unchanged
                       setSelectedId(table.id);
                       navigate(`/staff/tables/${table.id}`);
                     }}
                     className={cn(
                       "cursor-pointer transition-all rounded-2xl border",
-                      "bg-[hsl(40,20%,95%)/4%] border-[hsl(40,20%,95%)/10%]",
-                      "hover:bg-[hsl(40,20%,95%)/6%]",
+                      // ✅ light base
+                      "bg-card/80 border-border hover:bg-muted/60",
+                      // ✅ dark base (original)
+                      " dark:bg-[hsl(40,20%,95%)/4%]  dark:border-[hsl(40,20%,95%)/10%] dark:hover:bg-[hsl(40,20%,95%)/6%]",
                       statusColors[table.status],
                       isSelected && "ring-2 ring-primary/35"
                     )}
                   >
                     <CardHeader className="p-4 pb-2">
                       <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base text-[hsl(40,20%,95%)]">
+                        <CardTitle className="text-base  text-foreground dark:text-[hsl(40,20%,95%)]">
                           {table.name}
                         </CardTitle>
 
@@ -450,9 +502,12 @@ export default function StaffTablesPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-xl text-[hsl(40,20%,92%)] hover:bg-[hsl(40,20%,95%)/8%]"
+                              className={cn(
+                                "h-8 w-8 rounded-xl",
+                                "text-foreground hover:bg-muted/60",
+                                "dark:text-[hsl(40,20%,92%)] dark:hover:bg-[hsl(40,20%,95%)/8%]"
+                              )}
                               onClick={(e) => {
-                                // ensure menu click doesn't navigate
                                 e.preventDefault();
                                 e.stopPropagation();
                               }}
@@ -498,31 +553,31 @@ export default function StaffTablesPage() {
                         {table.status}
                       </span>
 
-                      <div className="text-xs text-[hsl(40,10%,60%)] font-mono">
+                      <div className="text-xs text-muted-foreground  dark:text-[hsl(40,10%,60%)] font-mono">
                         Code: {table.code}
                       </div>
 
                       {table.status === "reserved" && table.reservation ? (
-                        <div className="pt-2 border-t border-[hsl(40,20%,95%)/10%] space-y-1">
-                          <div className="text-sm font-medium text-[hsl(40,20%,95%)]">
+                        <div className="pt-2 border-t border-border/60  dark:border-[hsl(40,20%,95%)/10%] space-y-1">
+                          <div className="text-sm font-medium text-foreground dark:text-[hsl(40,20%,95%)]">
                             {table.reservation.name} • {table.reservation.partySize} guests
                           </div>
-                          <div className="text-xs text-[hsl(40,10%,60%)]">
+                          <div className="text-xs text-muted-foreground dark: dark:text-[hsl(40,10%,60%)]">
                             For:{" "}
                             {new Date(table.reservation.reservedFor).toLocaleTimeString("de-DE", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
                           </div>
-                          <div className="text-xs text-[hsl(40,10%,60%)]">
+                          <div className="text-xs text-muted-foreground  dark:text-[hsl(40,10%,60%)]">
                             Reservation: {table.reservation.status}
                           </div>
                         </div>
                       ) : null}
 
                       {table.status === "occupied" ? (
-                        <div className="pt-2 border-t border-[hsl(40,20%,95%)/10%] space-y-1">
-                          <div className="flex items-center gap-2 text-sm text-[hsl(40,20%,92%)]">
+                        <div className="pt-2 border-t border-border/60  dark:border-[hsl(40,20%,95%)/10%] space-y-1">
+                          <div className="flex items-center gap-2 text-sm text-foreground dark:text-[hsl(40,20%,92%)]">
                             <Users className="w-4 h-4 text-primary/80" />
                             <span>
                               {typeof table.guests === "number" ? `${table.guests} guests` : "—"}
@@ -530,15 +585,15 @@ export default function StaffTablesPage() {
                           </div>
 
                           <div className="flex justify-between text-sm">
-                            <span className="text-[hsl(40,10%,60%)]">Tab:</span>
-                            <span className="font-semibold text-[hsl(40,20%,95%)]">
+                            <span className="text-muted-foreground dark:text-muted-foreground dark:text-[hsl(40,10%,60%)]">Tab:</span>
+                            <span className="font-semibold  text-foreground dark:text-[hsl(40,20%,95%)]">
                               {typeof table.tabTotalCents === "number"
                                 ? formatEUR(table.tabTotalCents)
                                 : "—"}
                             </span>
                           </div>
 
-                          <div className="text-xs text-[hsl(40,10%,60%)]">
+                          <div className="text-xs text-muted-foreground  dark:text-[hsl(40,10%,60%)]">
                             Session: {getSessionDuration(table.assignedAt)}
                           </div>
                         </div>

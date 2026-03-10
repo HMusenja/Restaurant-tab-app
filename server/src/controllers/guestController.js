@@ -21,7 +21,6 @@ async function recalcAndSave(tab) {
 }
 
 // GET /api/tables/:token/active-tab
-// GET /api/tables/:token/active-tab
 export async function getActiveTab(req, res) {
   const { token } = req.params;
 
@@ -30,12 +29,34 @@ export async function getActiveTab(req, res) {
     return res.status(404).json({ message: "Table not found" });
   }
 
-  // 1️⃣ If active tab exists → return it
+  // If table has a referenced active tab, return it only if it is still usable.
   if (table.activeTab) {
     const tab = await Tab.findById(table.activeTab);
+
     if (tab) {
+      // A closed tab must not be treated as the current guest session.
+      if (tab.status === "CLOSED") {
+        table.activeTab = null;
+        await table.save();
+
+        return res.json({
+          table: {
+            id: String(table._id),
+            number: table.number,
+            status: table.status,
+            guestCount: typeof table.guestCount === "number" ? table.guestCount : 0,
+          },
+          tab: null,
+        });
+      }
+
       return res.json({
-        table: { id: table._id, number: table.number },
+        table: {
+          id: String(table._id),
+          number: table.number,
+          status: table.status,
+          guestCount: typeof table.guestCount === "number" ? table.guestCount : 0,
+        },
         tab,
       });
     }
@@ -45,25 +66,18 @@ export async function getActiveTab(req, res) {
     await table.save();
   }
 
-  // 2️⃣ No active tab → return LAST tab if CLOSED
-  const lastTab = await Tab.findOne({ table: table._id })
-    .sort({ updatedAt: -1 })
-    .limit(1);
-
-  if (lastTab && lastTab.status === "CLOSED") {
-    return res.json({
-      table: { id: table._id, number: table.number },
-      tab: lastTab,
-    });
-  }
-
-  // 3️⃣ Otherwise, session truly ended
+  // No active tab yet is a valid session state.
+  // Return null so guest can remain on the table page and lazily open a tab later.
   return res.json({
-    table: { id: table._id, number: table.number },
+    table: {
+      id: String(table._id),
+      number: table.number,
+      status: table.status,
+      guestCount: typeof table.guestCount === "number" ? table.guestCount : 0,
+    },
     tab: null,
   });
 }
-
 
 // POST /api/tabs/open  { tableToken }
 export async function openTab(req, res) {
@@ -75,7 +89,10 @@ export async function openTab(req, res) {
   if (table.activeTab) {
     const existing = await Tab.findById(table.activeTab);
     if (existing && existing.status === "OPEN") {
-      return res.json({ table: { id: table._id, number: table.number }, tab: existing });
+      return res.json({
+        table: { id: table._id, number: table.number },
+        tab: existing,
+      });
     }
     // if tab missing or not open, clear and create new
     table.activeTab = null;
@@ -97,7 +114,10 @@ export async function openTab(req, res) {
   table.activeTab = tab._id;
   await table.save();
 
-  return res.status(201).json({ table: { id: table._id, number: table.number }, tab });
+  return res.status(201).json({
+    table: { id: table._id, number: table.number },
+    tab,
+  });
 }
 
 // PATCH /api/tabs/:tabId/items
@@ -110,7 +130,9 @@ export async function updateTabItems(req, res) {
   if (!tab) return res.status(404).json({ message: "Tab not found" });
   if (tab.status !== "OPEN") return res.status(400).json({ message: "Tab is not open" });
 
-  const foundIndex = tab.items.findIndex((it) => String(it.menuItemId) === String(menuItemId));
+  const foundIndex = tab.items.findIndex(
+    (it) => String(it.menuItemId) === String(menuItemId)
+  );
 
   if (action === "ADD") {
     const q = clampInt(Number(qty ?? 1), 1, 99);
@@ -119,7 +141,9 @@ export async function updateTabItems(req, res) {
       tab.items[foundIndex].qty = clampInt(tab.items[foundIndex].qty + q, 1, 99);
     } else {
       const mi = await MenuItem.findById(menuItemId);
-      if (!mi || !mi.available) return res.status(400).json({ message: "Menu item unavailable" });
+      if (!mi || !mi.available) {
+        return res.status(400).json({ message: "Menu item unavailable" });
+      }
 
       tab.items.push({
         menuItemId: mi._id,
@@ -159,7 +183,6 @@ export async function updateTip(req, res) {
     return res.status(400).json({ message: "Invalid tip type" });
   }
 
-  // Tip percent: 0-50; Tip amount: 0-100€ (in cents)
   if (type === "PERCENT") {
     const pct = Math.min(Math.max(Number(value || 0), 0), 50);
     tab.tip = { type, value: pct };

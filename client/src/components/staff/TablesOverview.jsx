@@ -98,19 +98,22 @@ export function TablesOverview() {
   return (
     <Card
       className={cn(
-        "relative overflow-hidden rounded-2xl",
-        "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
-        "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+        "relative overflow-hidden rounded-2xl border backdrop-blur-xl",
+        // ✅ light mode
+        "border-border bg-card/85 shadow-sm",
+        // ✅ dark mode (original)
+        "border-border dark:border-[hsl(40,20%,95%)/10%] dark:bg-[hsl(220,20%,6%)]/45",
+        "dark:shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
       )}
     >
       <div className="pointer-events-none absolute -top-16 -left-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
 
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <div className="min-w-0">
-          <CardTitle className="text-base md:text-lg text-[hsl(40,20%,95%)]">
+          <CardTitle className="text-base md:text-lg  text-foreground dark:text-[hsl(40,20%,95%)]">
             Table Status
           </CardTitle>
-          <div className="mt-1 text-xs text-[hsl(40,10%,60%)]">
+          <div className="mt-1 text-xs text-muted-foreground dark:text-[hsl(40,10%,60%)]">
             AfroAsiatique • Floor overview
           </div>
         </div>
@@ -129,14 +132,23 @@ export function TablesOverview() {
 
       <CardContent>
         {loading ? (
-          <div className="text-sm text-[hsl(40,10%,60%)]">Loading…</div>
+          <div className="text-sm text-muted-foreground dark:text-[hsl(40,10%,60%)]">
+            Loading…
+          </div>
         ) : error ? (
           <div className="space-y-3">
             <div className="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </div>
+
             <button
-              className="rounded-xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] px-3 py-2 text-sm text-[hsl(40,20%,92%)] hover:bg-[hsl(40,20%,95%)/7%]"
+              className={cn(
+                "rounded-xl border px-3 py-2 text-sm transition-colors",
+                // ✅ light mode
+                "border-border bg-card/90 text-foreground hover:bg-muted/60",
+                // ✅ dark mode (original vibe)
+                "border-border dark:border-[hsl(40,20%,95%)/10%] bg-muted/40 dark:bg-[hsl(40,20%,95%)/4%] dark:text-[hsl(40,20%,92%)] dark:hover:bg-[hsl(40,20%,95%)/7%]"
+              )}
               onClick={() => {
                 setLoading(true);
                 reloadTables();
@@ -156,8 +168,10 @@ export function TablesOverview() {
                   type="button"
                   className={cn(
                     "text-left group relative rounded-2xl border p-3 transition-all",
-                    "bg-[hsl(40,20%,95%)/4%] border-[hsl(40,20%,95%)/10%]",
-                    "hover:bg-[hsl(40,20%,95%)/6%] hover:scale-[1.01] active:scale-[0.99]"
+                    // ✅ light mode tile
+                    "bg-background/60 border-border hover:bg-muted/60 hover:scale-[1.01] active:scale-[0.99]",
+                    // ✅ dark mode tile (original)
+                    "bg-muted/40 dark:bg-[hsl(40,20%,95%)/4%] border-border dark:border-[hsl(40,20%,95%)/10%] dark:hover:bg-[hsl(40,20%,95%)/6%]"
                   )}
                   onClick={() => {
                     // no behavior change — navigation comes later
@@ -173,7 +187,7 @@ export function TablesOverview() {
 
                   <div className="mb-2 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-semibold leading-none text-[hsl(40,20%,95%)]">
+                      <div className="text-sm font-semibold leading-none text-foreground dark:text-[hsl(40,20%,95%)]">
                         {table.name}
                       </div>
 
@@ -192,22 +206,22 @@ export function TablesOverview() {
                   {table.status === "occupied" ? (
                     <div className="space-y-1">
                       {typeof table.guests === "number" ? (
-                        <div className="flex items-center gap-1 text-xs text-[hsl(40,10%,70%)]">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground dark:text-[hsl(40,10%,70%)]">
                           <Users className="w-3 h-3 text-primary/80" />
                           <span>{table.guests} guests</span>
                         </div>
                       ) : (
-                        <div className="text-xs text-[hsl(40,10%,60%)]">
+                        <div className="text-xs  dark:text-muted-foreground dark:text-[hsl(40,10%,60%)]">
                           Active tab
                         </div>
                       )}
 
-                      <div className="text-sm font-semibold text-[hsl(40,20%,95%)]">
+                      <div className="text-sm font-semibold  text-foreground dark:text-[hsl(40,20%,95%)]">
                         {table.tabTotalLabel || "—"}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-xs text-[hsl(40,10%,60%)]">
+                    <div className="text-xs dark:text-muted-foreground dark:text-[hsl(40,10%,60%)]">
                       Tap to open
                     </div>
                   )}

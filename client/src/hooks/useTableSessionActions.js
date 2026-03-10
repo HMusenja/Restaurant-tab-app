@@ -1,8 +1,11 @@
-// src/hooks/staff/useTableSessionActions.js
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
-import { assignTable, freeTable, regenerateTableCode } from "@/api/staffTableApi";
+import {
+  assignTable,
+  freeTable,
+  regenerateTableCode,
+} from "@/api/staffTableApi";
 
 export function useTableSessionActions({
   tableId,
@@ -38,7 +41,7 @@ export function useTableSessionActions({
                 ? new Date(data.joinCodeExpiresAt)
                 : prev.joinCodeExpiresAt,
             }
-          : prev
+          : prev,
       );
 
       toast.success("New code generated");
@@ -54,6 +57,7 @@ export function useTableSessionActions({
       toast.error("No code yet. Start a session first.");
       return;
     }
+
     await navigator.clipboard.writeText(table.joinCode);
     setCopied(true);
     toast.success("Code copied");
@@ -84,13 +88,13 @@ export function useTableSessionActions({
               joinCode: data?.code || prev.joinCode,
               joinUrl: data?.joinUrl || prev.joinUrl,
               activeTabId: data?.tab?._id || data?.tab?.id || prev.activeTabId,
+              activeTabStatus: data?.tab?.status || prev.activeTabStatus,
               tabTotalCents: data?.tab?.totalCents ?? prev.tabTotalCents,
             }
-          : prev
+          : prev,
       );
 
       onCloseNewSessionDialog?.(false);
-
       await reload();
     } catch (e) {
       onError?.(e?.message || "Failed to start session");
@@ -107,42 +111,58 @@ export function useTableSessionActions({
     onCloseNewSessionDialog,
   ]);
 
-  const handleCloseTable = useCallback(async () => {
-    if (!tableId) return;
+  const runCloseTable = useCallback(
+    async ({ force = false } = {}) => {
+      if (!tableId) return;
 
-    setBusyFree(true);
-    onError?.("");
+      setBusyFree(true);
+      onError?.("");
 
-    try {
-      await freeTable(tableId);
+      try {
+        await freeTable(tableId, { force });
 
-      setTable((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "available",
-              assignedAt: null,
-              activeTabId: null,
-              tabTotalCents: 0,
-              joinCode: null,
-              joinCodeExpiresAt: null,
-              joinUrl: null,
-              guestCount: undefined,
-            }
-          : prev
-      );
+        setTable((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: "available",
+                assignedAt: null,
+                activeTabId: null,
+                activeTabStatus: null,
+                tabTotalCents: 0,
+                joinCode: null,
+                joinCodeExpiresAt: null,
+                joinUrl: null,
+                guestCount: undefined,
+              }
+            : prev,
+        );
 
-      setRequests?.([]);
-      setReservation?.(null);
+        setRequests?.([]);
+        setReservation?.(null);
 
-      toast.success("Table closed");
-      await reload();
-    } catch (e) {
-      onError?.(e?.message || "Failed to close table");
-    } finally {
-      setBusyFree(false);
-    }
-  }, [tableId, setTable, reload, onError, setRequests, setReservation]);
+        toast.success("Table closed");
+        await reload();
+      } catch (e) {
+        onError?.(
+          e?.response?.data?.message ||
+            e?.message ||
+            "Failed to close table",
+        );
+      } finally {
+        setBusyFree(false);
+      }
+    },
+    [tableId, setTable, reload, onError, setRequests, setReservation],
+  );
+
+  const handleCloseTable = useCallback(() => {
+    return runCloseTable({ force: false });
+  }, [runCloseTable]);
+
+  const handleForceCloseTable = useCallback(() => {
+    return runCloseTable({ force: true });
+  }, [runCloseTable]);
 
   return {
     isGeneratingCode,
@@ -153,5 +173,6 @@ export function useTableSessionActions({
     handleCopyCode,
     handleStartSession,
     handleCloseTable,
+    handleForceCloseTable,
   };
 }

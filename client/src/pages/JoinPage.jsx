@@ -2,43 +2,30 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { joinWithInvite } from "../api/joinApi";
 
-import { ArrowLeft, Users, AlertCircle, Check, RectangleEllipsis } from "lucide-react";
+import {
+  Users,
+  AlertCircle,
+  Check,
+  RectangleEllipsis,
+  ArrowLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AppHeader } from "@/components/layout/AppHeader";
+import GuestEntryHeader from "@/components/guest/GuestEntryHeader";
 
-function GlassShell({ children, onBack }) {
+function GlassShell({ children }) {
   return (
-    <div className="relative h-screen flex flex-col overflow-hidden">
-      {/* Background */}
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
       <div
-        className="absolute inset-0 bg-cover bg-center animate-slow-zoom"
+        className="absolute inset-0 bg-cover bg-center opacity-15 dark:opacity-20"
         style={{ backgroundImage: "url('/staff-login-bg.jpg')" }}
       />
 
-      <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/45 to-black/70" />
-      {/* <div className="absolute inset-0 backdrop-blur-[2px]" /> */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-muted/30" />
 
-      {/* Foreground */}
-      <div className="relative flex flex-col h-full">
-        <AppHeader
-          rightContent={
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onBack}
-              className="text-white hover:bg-white/10"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          }
-        />
-
-        {children}
-      </div>
+      <div className="relative flex min-h-screen flex-col">{children}</div>
     </div>
   );
 }
-
 
 export default function JoinPage() {
   const [params] = useSearchParams();
@@ -56,7 +43,10 @@ export default function JoinPage() {
     (async () => {
       try {
         if (!invite) throw new Error("Missing invite in URL");
-        const data = await joinWithInvite(invite); // { table: { token } }
+
+        const data = await joinWithInvite(invite);
+        console.log("joinWithInvite success:", data);
+
         if (!alive) return;
         navigate(`/t/${data.table.token}`, { replace: true });
       } catch (e) {
@@ -71,30 +61,31 @@ export default function JoinPage() {
     };
   }, [invite, navigate]);
 
-  // Loading state
   if (loading) {
     return (
-      <GlassShell onBack={handleBack}>
-        <main className="flex-1 flex items-center justify-center px-6">
+      <GlassShell>
+        <GuestEntryHeader onBack={handleBack} />
+
+        <main className="flex flex-1 items-center justify-center px-6">
           <div className="w-full max-w-sm space-y-6">
-            <div className="rounded-2xl p-6 shadow-elevated border border-white/15 bg-white/90 backdrop-blur-xl text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center">
-                <Check className="w-8 h-8 text-primary" />
+            <div className="space-y-4 rounded-3xl border border-border bg-card/95 p-6 text-center shadow-lg backdrop-blur-xl">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
+                <Check className="h-8 w-8 text-primary" />
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-2xl font-bold">Joining…</h2>
+                <h2 className="text-2xl font-bold text-foreground">Joining…</h2>
                 <p className="text-sm text-muted-foreground">
                   Please wait while we connect you to the table.
                 </p>
               </div>
             </div>
 
-            <Button size="xl" className="w-full" disabled>
+            <Button size="xl" className="w-full rounded-2xl" disabled>
               <span className="animate-pulse-soft">Joining…</span>
             </Button>
 
-            <p className="text-center text-xs text-white/70">
+            <p className="text-center text-xs text-muted-foreground">
               If this takes longer than a few seconds, ask staff to refresh the QR.
             </p>
           </div>
@@ -103,22 +94,24 @@ export default function JoinPage() {
     );
   }
 
-  // Error state
   return (
-    <GlassShell onBack={handleBack}>
-      <main className="flex-1 flex flex-col items-center justify-center px-6">
+    <GlassShell>
+      <GuestEntryHeader onBack={handleBack} showTitleBlock
+        subtitle="Enter your table code to get started" className="text-white" />
+
+      <main className="flex flex-1 flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm space-y-8">
-          <div className="rounded-2xl p-6 shadow-elevated border border-white/15 bg-white/90 backdrop-blur-xl text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-destructive/10 ring-1 ring-destructive/20 flex items-center justify-center">
-              <AlertCircle className="w-8 h-8 text-destructive" />
+          <div className="space-y-4 rounded-3xl border border-border bg-card/95 p-6 text-center shadow-lg backdrop-blur-xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10">
+              <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold">Unable to join</h2>
+              <h2 className="text-2xl font-bold text-foreground">Unable to join</h2>
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
 
-            <div className="pt-3 border-t border-border/60">
+            <div className="border-t border-border/60 pt-3">
               <p className="text-sm text-muted-foreground">
                 This invite may have expired. Please ask staff to show the QR again.
               </p>
@@ -126,33 +119,42 @@ export default function JoinPage() {
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-destructive text-sm p-3 bg-destructive/10 rounded-lg animate-fade-in border border-destructive/15">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>Try again with a fresh invite or use your entry code.</span>
+            <div className="animate-fade-in rounded-2xl border border-destructive/15 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>Try again with a fresh invite or use your entry code.</span>
+              </div>
             </div>
 
             <Button
               variant="secondary"
               size="lg"
-              className="w-full"
+              className="w-full rounded-2xl"
               onClick={() => navigate("/enter-code")}
+              type="button"
             >
-              <RectangleEllipsis className="w-5 h-5 mr-2" />
+              <RectangleEllipsis className="mr-2 h-5 w-5" />
               Use Code
             </Button>
 
-            <Button size="xl" className="w-full" onClick={handleBack}>
-              <Users className="w-5 h-5 mr-2" />
+            <Button
+              size="xl"
+              className="w-full rounded-2xl"
+              onClick={handleBack}
+              type="button"
+            >
+              <Users className="mr-2 h-5 w-5" />
               Back to start
             </Button>
 
             <Button
               variant="ghost"
               size="lg"
-              className="w-full text-white hover:bg-white/10"
+              className="w-full rounded-2xl text-foreground hover:bg-muted"
               onClick={handleBack}
+              type="button"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
             </Button>
           </div>

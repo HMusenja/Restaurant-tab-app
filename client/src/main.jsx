@@ -10,12 +10,14 @@ import { ServiceProvider } from "./contexts/ServiceContext.jsx";
 import { ReservationsProvider } from "./contexts/reservations/ReservationsContext.jsx";
 import { MenuProvider } from "./contexts/MenuContext.jsx";
 import { NotificationsProvider } from "./contexts/NotificationsContext.jsx";
+import { UiPreferencesProvider } from "./contexts/UiPreferencesContext.jsx";
 
 setAxiosDefaults();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <AuthProvider>
+    <UiPreferencesProvider>
+      <AuthProvider>
       <RealtimeProvider>
         <NotificationsProvider>
           <MenuProvider>
@@ -28,5 +30,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         </NotificationsProvider>
       </RealtimeProvider>
     </AuthProvider>
+    </UiPreferencesProvider>
   </BrowserRouter>,
 );

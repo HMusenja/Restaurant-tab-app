@@ -167,49 +167,20 @@ export async function assignTable(req, res, next) {
       return res.status(404).json({ message: "Table not found" });
     }
 
-    // ❌ Already occupied → reject
     if (table.status === "OCCUPIED") {
       return res.status(400).json({ message: "Table already occupied" });
     }
 
-    // ✅ If RESERVED → clear reservation
+    // If RESERVED → clear reservation reference on table
     if (table.status === "RESERVED") {
       table.reservation = null;
     }
 
-    // -----------------------------
-    // Ensure or create OPEN tab
-    // -----------------------------
-    let tab = null;
+    // IMPORTANT:
+    // Starting a session must NOT auto-create a tab.
+    // Tabs should be created lazily only when there is a real cart/payable flow.
+    table.activeTab = null;
 
-    if (table.activeTab) {
-      const existing = await Tab.findById(table.activeTab);
-      if (existing && existing.status === "OPEN") {
-        tab = existing;
-      } else {
-        table.activeTab = null;
-      }
-    }
-
-    if (!tab) {
-      tab = await Tab.create({
-        table: table._id,
-        status: "OPEN",
-        items: [],
-        tip: { type: "PERCENT", value: 0 },
-        subtotalCents: 0,
-        billSubtotalCents: 0,
-        totalCents: 0,
-        amountPaidCents: 0,
-        amountDueCents: 0,
-      });
-
-      table.activeTab = tab._id;
-    }
-
-    // -----------------------------
-    // Generate join code
-    // -----------------------------
     const ttlSeconds = Number(process.env.TABLE_CODE_TTL_SECONDS || 600);
 
     table.joinCode = generateJoinCode();
@@ -217,7 +188,6 @@ export async function assignTable(req, res, next) {
 
     table.status = "OCCUPIED";
     table.assignedAt = new Date();
-
     table.guestCount =
       Number.isFinite(Number(guestCount)) && Number(guestCount) > 0
         ? Number(guestCount)
@@ -225,9 +195,6 @@ export async function assignTable(req, res, next) {
 
     await table.save();
 
-    // -----------------------------
-    // Realtime updates
-    // -----------------------------
     const io = req.app.get("io");
 
     io.to("staff").emit("tables:updated", {
@@ -236,12 +203,12 @@ export async function assignTable(req, res, next) {
 
     io.to("staff").emit("tab:updated", {
       tableId: String(table._id),
-      tabId: String(tab._id),
+      tabId: null,
     });
 
     io.to(`table:${table._id}`).emit("tab:updated", {
       tableId: String(table._id),
-      tabId: String(tab._id),
+      tabId: null,
     });
 
     const { joinUrl, expiresInSeconds } = signInvite(table._id);
@@ -252,7 +219,7 @@ export async function assignTable(req, res, next) {
         number: table.number,
         status: table.status,
       },
-      tab,
+      tab: null,
       joinUrl,
       expiresInSeconds,
       code: table.joinCode,
@@ -268,24 +235,51 @@ export async function assignTable(req, res, next) {
 export async function freeTable(req, res) {
   const { tableId } = req.params;
 
+  const force =
+    req.query.force === "true" ||
+    req.body?.force === true ||
+    req.body?.force === "true";
+
   const table = await Table.findById(tableId);
   if (!table) return res.status(404).json({ message: "Table not found" });
 
+  let activeTab = null;
+
+  if (table.activeTab) {
+    activeTab = await Tab.findById(table.activeTab);
+  }
+
+  if (activeTab && activeTab.status === "OPEN" && !force) {
+    return res.status(400).json({
+      message: "This table has an open tab. Please complete payment before closing the table.",
+      code: "TAB_PAYMENT_REQUIRED",
+      tabId: String(activeTab._id),
+    });
+  }
+
+  if (activeTab && activeTab.status !== "CLOSED") {
+    activeTab.status = "CLOSED";
+      activeTab.closedAt = new Date();
+    await activeTab.save();
+  }
+
   table.status = "FREE";
   table.assignedAt = null;
-  table.activeTab = null; // optional (or keep for audit)
-
+  table.activeTab = null;
   table.joinCode = null;
   table.guestCount = 0;
   table.joinCodeExpiresAt = null;
+
   await table.save();
 
   const io = req.app.get("io");
+
   io.to("staff").emit("tables:updated", { tableId: String(table._id) });
   io.to("staff").emit("tab:updated", {
     tableId: String(table._id),
     tabId: null,
   });
+
   io.to(`table:${table._id}`).emit("tab:updated", {
     tableId: String(table._id),
     tabId: null,
@@ -293,7 +287,11 @@ export async function freeTable(req, res) {
 
   res.json({
     ok: true,
-    table: { id: table._id, number: table.number, status: table.status },
+    table: {
+      id: table._id,
+      number: table.number,
+      status: table.status,
+    },
   });
 }
 

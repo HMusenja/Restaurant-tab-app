@@ -80,16 +80,22 @@ function timeAgoSmart(date) {
 }
 
 function typePillClass(type) {
-  // Slightly different tint per request type, still within your dark/amber system.
+  // Theme-aware tints: light uses tokens, dark keeps your amber/grey system.
   switch (type) {
     case "water":
       return "bg-primary/10 border-primary/20 text-primary/80";
     case "help":
-      return "bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]";
+      return cn(
+        "bg-muted/50 border-border text-muted-foreground",
+        "dark:bg-[hsl(40,20%,95%)/6%] border-border dark:border-[hsl(40,20%,95%)/10%] dark:text-[hsl(40,10%,70%)]"
+      );
     case "bill":
       return "bg-warning/10 border-warning/20 text-warning";
     default:
-      return "bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]";
+      return cn(
+        "bg-muted/50 border-border text-muted-foreground",
+        "dark:bg-[hsl(40,20%,95%)/6%] border-border dark:border-[hsl(40,20%,95%)/10%] dark:text-[hsl(40,10%,70%)]"
+      );
   }
 }
 
@@ -104,36 +110,57 @@ export function RequestsCard({ requests, onAcknowledge, onComplete }) {
   return (
     <Card
       className={cn(
-        "relative overflow-hidden rounded-2xl",
-        "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
-        "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+        "relative overflow-hidden rounded-2xl border backdrop-blur-xl",
+        // ✅ light mode
+        "border-border bg-card/85 shadow-sm",
+        // ✅ dark mode (keep your original vibe)
+        "border-border dark:border-[hsl(40,20%,95%)/10%] dark:bg-[hsl(220,20%,6%)]/45",
+        "dark:shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
       )}
     >
       <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
 
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <div className="min-w-0">
-          <CardTitle className="text-base md:text-lg text-[hsl(40,20%,95%)]">
+          <CardTitle className="text-base md:text-lg text-foreground text-foreground dark:text-[hsl(40,20%,95%)]">
             Recent Requests
           </CardTitle>
-          <div className="mt-1 text-xs text-[hsl(40,10%,60%)]">
+          <div className="mt-1 text-xs text-muted-foreground dark:
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">
             AfroAsiatique • Service queue
           </div>
         </div>
 
-        <Badge className="rounded-full bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]">
+        <Badge
+          className={cn(
+            "rounded-full border",
+            // ✅ light mode
+            "bg-card/90 border-border text-muted-foreground",
+            // ✅ dark mode
+            "dark:bg-[hsl(40,20%,95%)/6%]border-border dark:border-[hsl(40,20%,95%)/10%] dark:text-[hsl(40,10%,70%)]"
+          )}
+        >
           {activeRequests.length} active
         </Badge>
       </CardHeader>
 
       <CardContent className="space-y-3">
         {activeRequests.length === 0 ? (
-          <div className="rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] py-8 text-center">
+          <div
+            className={cn(
+              "rounded-2xl border py-8 text-center",
+              // ✅ light
+              "border-border bg-muted/30",
+              // ✅ dark
+              "border-border dark:border-[hsl(40,20%,95%)/10%] bg-muted/40 dark:bg-[hsl(40,20%,95%)/4%]"
+            )}
+          >
             <Check className="h-9 w-9 mx-auto mb-2 opacity-60 text-primary" />
-            <p className="text-sm font-medium text-[hsl(40,20%,92%)]">
+            <p className="text-sm font-medium text-foreground dark:text-[hsl(40,20%,92%)]">
               All caught up!
             </p>
-            <p className="text-xs text-[hsl(40,10%,60%)] mt-1">
+            <p className="text-xs text-muted-foreground dark:
+text-muted-foreground dark:text-[hsl(40,10%,60%)] mt-1">
               No pending requests right now.
             </p>
           </div>
@@ -148,7 +175,11 @@ export function RequestsCard({ requests, onAcknowledge, onComplete }) {
                 key={request.id}
                 className={cn(
                   "group flex items-center gap-3 p-3 rounded-2xl border transition-colors",
-                  "bg-[hsl(40,20%,95%)/4%] border-[hsl(40,20%,95%)/10%]",
+                  // ✅ light default
+                  "bg-background/60 border-border hover:bg-muted/60",
+                  // ✅ dark default (original)
+                  "bg-muted/40 dark:bg-[hsl(40,20%,95%)/4%] border-border dark:border-[hsl(40,20%,95%)/10%]",
+                  // pending highlight
                   isPending && "bg-primary/10 border-primary/20"
                 )}
               >
@@ -158,13 +189,18 @@ export function RequestsCard({ requests, onAcknowledge, onComplete }) {
                     "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
                     isPending
                       ? "bg-primary/15 border-primary/25"
-                      : "bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%]"
+                      : cn(
+                          "bg-card/70 border-border",
+                          "dark:bg-[hsl(40,20%,95%)/6%] border-border dark:border-[hsl(40,20%,95%)/10%]"
+                        )
                   )}
                 >
                   <Icon
                     className={cn(
                       "w-5 h-5",
-                      isPending ? "text-primary" : "text-[hsl(40,10%,75%)]"
+                      isPending
+                        ? "text-primary"
+                        : "text-muted-foreground dark:text-[hsl(40,10%,75%)]"
                     )}
                   />
                 </div>
@@ -172,7 +208,7 @@ export function RequestsCard({ requests, onAcknowledge, onComplete }) {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-semibold text-sm text-[hsl(40,20%,95%)] truncate">
+                    <span className="font-semibold text-sm text-foreground text-foreground dark:text-[hsl(40,20%,95%)] truncate">
                       {request.tableName}
                     </span>
 
@@ -192,15 +228,15 @@ export function RequestsCard({ requests, onAcknowledge, onComplete }) {
                     ) : null}
                   </div>
 
-                  <div className="mt-1 flex items-center gap-2 text-xs text-[hsl(40,10%,60%)]">
+                  <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground dark:
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">
                     <span className="inline-flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {timeAgoSmart(request.createdAt)}
                     </span>
 
-                    {/* optional note line (only if present) */}
                     {request.note ? (
-                      <span className="truncate text-[hsl(40,10%,55%)]">
+                      <span className="truncate text-muted-foreground/90 dark:text-[hsl(40,10%,55%)]">
                         • {request.note}
                       </span>
                     ) : null}
@@ -212,9 +248,11 @@ export function RequestsCard({ requests, onAcknowledge, onComplete }) {
                   size="sm"
                   variant={isPending ? "default" : "success"}
                   className={cn(
-                    "rounded-xl",
-                    "border border-[hsl(40,20%,95%)/10%]",
-                    "shadow-sm"
+                    "rounded-xl shadow-sm",
+                    // ✅ light mode: use border tokens
+                    "border border-border",
+                    // ✅ dark mode: keep your old border tint
+                    "border-border dark:border-[hsl(40,20%,95%)/10%]"
                   )}
                   onClick={() =>
                     isPending ? onAcknowledge(request.id) : onComplete(request.id)

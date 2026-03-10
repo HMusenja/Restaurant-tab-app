@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 function statusPill(status) {
   const s = String(status || "").toUpperCase();
-  if (!s) return "bg-[hsl(40,20%,95%)/6%] border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]";
+  if (!s) return "bg-[hsl(40,20%,95%)/6%] border-border dark:border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]";
   if (s === "DONE") return "bg-success/10 border-success/20 text-success";
   if (s === "PREPARING" || s === "IN_PROGRESS")
     return "bg-warning/10 border-warning/20 text-warning";
@@ -35,7 +35,7 @@ export default function StaffActiveTabCard() {
       <Card
         className={cn(
           "relative overflow-hidden rounded-2xl",
-          "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
+          "border border-border bg-card/85 backdrop-blur-xl dark:border-[hsl(40,20%,95%)/10%] dark:bg-[hsl(220,20%,6%)]/45",
           "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
         )}
       >
@@ -48,7 +48,8 @@ export default function StaffActiveTabCard() {
             Open Tab
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-[hsl(40,10%,60%)]">
+        <CardContent className="text-sm 
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">
           Loading tab…
         </CardContent>
       </Card>
@@ -59,7 +60,7 @@ export default function StaffActiveTabCard() {
     <Card
       className={cn(
         "relative overflow-hidden rounded-2xl",
-        "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
+        "border border-border bg-card/85 backdrop-blur-xl dark:border-[hsl(40,20%,95%)/10%] dark:bg-[hsl(220,20%,6%)]/45",
         "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
       )}
     >
@@ -73,13 +74,15 @@ export default function StaffActiveTabCard() {
             </span>
             <span className="truncate">Open Tab</span>
 
-            <Badge className="hidden sm:inline-flex rounded-full bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]">
+            <Badge className="hidden sm:inline-flex rounded-full bg-[hsl(40,20%,95%)/6%] border 
+border-border dark:border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]">
               <ShoppingBag className="h-3 w-3 mr-1 opacity-80" />
               {ordered.length}
             </Badge>
           </span>
 
-          <Badge className="rounded-full bg-[hsl(40,20%,95%)/6%] border border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]">
+          <Badge className="rounded-full bg-[hsl(40,20%,95%)/6%] border 
+border-border dark:border-[hsl(40,20%,95%)/10%] text-[hsl(40,10%,70%)]">
             <Ticket className="h-3 w-3 mr-1 opacity-80" />
             {ticketsCount ?? 0}
           </Badge>
@@ -88,16 +91,25 @@ export default function StaffActiveTabCard() {
 
       <CardContent className="pt-0">
         {ordered.length === 0 ? (
-          <div className="rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] py-6 text-center">
+          <div className="rounded-2xl border 
+border-border dark:border-[hsl(40,20%,95%)/10%] 
+
+
+bg-muted/40 dark:bg-[hsl(40,20%,95%)/4%] py-6 text-center">
             <p className="text-sm font-medium text-[hsl(40,20%,92%)]">
               No items yet
             </p>
-            <p className="text-xs text-[hsl(40,10%,60%)] mt-1">
+            <p className="text-xs 
+text-muted-foreground dark:text-[hsl(40,10%,60%)] mt-1">
               Orders will appear here.
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] overflow-hidden">
+          <div className="rounded-2xl border 
+border-border dark:border-[hsl(40,20%,95%)/10%] 
+
+
+bg-muted/40 dark:bg-[hsl(40,20%,95%)/4%] overflow-hidden">
             {/* Receipt rows */}
             {ordered.map((item, index) => {
               const lineTotal = (item.priceCentsSnap || 0) * (item.qty || 0);
@@ -135,7 +147,8 @@ export default function StaffActiveTabCard() {
                   </div>
 
                   {item.notes ? (
-                    <div className="px-3 pb-2 -mt-1 text-[11px] text-[hsl(40,10%,60%)] truncate">
+                    <div className="px-3 pb-2 -mt-1 text-[11px] 
+text-muted-foreground dark:text-[hsl(40,10%,60%)] truncate">
                       {item.notes}
                     </div>
                   ) : null}

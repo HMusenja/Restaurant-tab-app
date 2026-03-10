@@ -105,7 +105,8 @@ export default function LandingPage() {
                 initial="hidden"
                 animate="visible"
                 custom={i}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[hsl(40,20%,95%)/8%] backdrop-blur-md border border-[hsl(40,20%,95%)/10%] text-sm text-[hsl(40,10%,70%)]"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[hsl(40,20%,95%)/8%] backdrop-blur-md border 
+border-border dark:border-[hsl(40,20%,95%)/10%] text-sm text-[hsl(40,10%,70%)]"
               >
                 <item.icon className="w-4 h-4 text-primary" />
                 {item.label}
@@ -134,7 +135,8 @@ export default function LandingPage() {
                   <p className="font-semibold text-lg text-[hsl(40,20%,95%)]">
                     Join Table
                   </p>
-                  <p className="text-sm text-[hsl(40,10%,60%)]">
+                  <p className="text-sm 
+text-muted-foreground dark:text-[hsl(40,10%,60%)]">
                     Scan, order & enjoy
                   </p>
                 </div>
@@ -145,7 +147,8 @@ export default function LandingPage() {
             {/* Secondary CTA — Staff */}
             <button
               onClick={() => navigate("/login")}
-              className="group w-full p-4 rounded-2xl bg-[hsl(40,20%,95%)/5%] backdrop-blur-xl border border-[hsl(40,20%,95%)/10%] hover:bg-[hsl(40,20%,95%)/10%] hover:border-[hsl(40,20%,95%)/15%] transition-all duration-300 flex items-center justify-between cursor-pointer"
+              className="group w-full p-4 rounded-2xl bg-[hsl(40,20%,95%)/5%] backdrop-blur-xl border 
+border-border dark:border-[hsl(40,20%,95%)/10%] hover:bg-[hsl(40,20%,95%)/10%] hover:border-[hsl(40,20%,95%)/15%] transition-all duration-300 flex items-center justify-between cursor-pointer"
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-[hsl(40,20%,95%)/8%] flex items-center justify-center">

@@ -165,7 +165,7 @@ export default function NotificationsDrawer({ open, onOpenChange }) {
                   key={n._id}
                   className={cn(
                     "rounded-2xl border p-3 transition-all",
-                    "bg-[hsl(40,20%,95%)/5%] border-[hsl(40,20%,95%)/10%]",
+                    "bg-[hsl(40,20%,95%)/5%] border-border dark:border-[hsl(40,20%,95%)/10%]",
                     isUnread && "ring-1 ring-primary/25",
                     n.severity === "urgent" && "border-destructive/25"
                   )}
@@ -213,7 +213,7 @@ export default function NotificationsDrawer({ open, onOpenChange }) {
                             <div
                               className={cn(
                                 "relative mt-2 text-xs rounded-lg px-2 py-1 border transition-all",
-                                "bg-[hsl(220,20%,10%)]/40 border-[hsl(40,20%,95%)/10%]",
+                                "bg-[hsl(220,20%,10%)]/40 border-border dark:border-[hsl(40,20%,95%)/10%]",
                                 "text-[hsl(40,20%,82%)]",
                                 shouldHighlight &&
                                   "border-primary/40 shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_0_18px_rgba(255,180,60,0.18)]"

@@ -10,13 +10,27 @@ function formatEUR(cents) {
   }).format((cents || 0) / 100);
 }
 
+function SectionCard({ title, children, description }) {
+  return (
+    <section className="rounded-3xl border border-border/70 bg-card/95 p-4 shadow-sm backdrop-blur">
+      <div className="mb-3">
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        {description ? (
+          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export default function StaffPaymentPage() {
   const { tabId } = useParams();
   const navigate = useNavigate();
 
   const [tab, setTab] = useState(null);
-  const [orderedLines, setOrderedLines] = useState([]); // ✅ from tickets
-  const [method, setMethod] = useState("cash"); // cash  | card
+  const [orderedLines, setOrderedLines] = useState([]);
+  const [method, setMethod] = useState("cash");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -43,15 +57,12 @@ export default function StaffPaymentPage() {
   const status = tab?.status;
   const tableNumber = tab?.table?.number ?? "?";
 
-  // ✅ What staff should charge: tab.totalCents is authoritative
   const totalCents = useMemo(() => {
     return tab?.totalCents ?? tab?.subtotalCents ?? 0;
   }, [tab]);
 
-  // Optional: show cart items that haven't been sent yet
   const cartItems = tab?.items || [];
 
-  // ✅ Ordered subtotal (tickets) for display only
   const orderedSubtotalCents = useMemo(() => {
     return (orderedLines || []).reduce((sum, l) => {
       const price = l.priceCentsSnap ?? 0;
@@ -60,12 +71,8 @@ export default function StaffPaymentPage() {
     }, 0);
   }, [orderedLines]);
 
-  // Tip display (optional)
   const tipCents = useMemo(() => {
     const due = tab?.amountDueCents ?? 0;
-    // If you have explicit tip amount stored somewhere, use it.
-    // Otherwise you can derive tip roughly: total - (billSubtotal + cartSubtotal)
-    // But keep it simple unless you expose tipCents from backend.
     return null;
   }, [tab]);
 
@@ -73,7 +80,7 @@ export default function StaffPaymentPage() {
     setError("");
     setBusy(true);
     try {
-      const data = await payTab(tabId, method); // expects { tab }
+      const data = await payTab(tabId, method);
       setTab(data.tab);
     } catch (e) {
       setError(e.message || "Payment failed");
@@ -87,7 +94,6 @@ export default function StaffPaymentPage() {
     setBusy(true);
     try {
       await closeTab(tabId);
-      // After close, best to refresh so UI reflects CLOSED/table freed
       await load();
     } catch (e) {
       const msg =
@@ -100,174 +106,220 @@ export default function StaffPaymentPage() {
     }
   }
 
-  if (loading) return <div className="p-6">Loading…</div>;
-  if (!tab) return <div className="p-6 text-sm text-red-600">{error || "Tab not found"}</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="mx-auto max-w-3xl px-4 py-6">
+          <div className="rounded-3xl border border-border/70 bg-card/95 p-6 text-sm text-muted-foreground shadow-sm">
+            Loading…
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tab) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="mx-auto max-w-3xl px-4 py-6">
+          <div className="rounded-3xl border border-destructive/20 bg-destructive/10 p-6 text-sm text-destructive shadow-sm">
+            {error || "Tab not found"}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const hasAnyLines = (orderedLines?.length || 0) > 0 || (cartItems?.length || 0) > 0;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <div className="border-b p-4">
-        <div className="text-sm">Table {tableNumber}</div>
-        <div className="text-lg font-semibold">Payment</div>
-        <div className="text-sm opacity-70">Status: {status}</div>
-      </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 py-4">
+        {/* Header */}
+        <header className="mb-4 rounded-3xl border border-border/70 bg-card/95 p-4 shadow-sm backdrop-blur">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Table {tableNumber}</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Payment
+              </h1>
+              <p className="text-sm text-muted-foreground">Status: {status}</p>
+            </div>
 
-      {/* Error */}
-      {error ? <div className="p-4 text-sm text-red-600">{error}</div> : null}
+            <div className="rounded-2xl border border-border/60 bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              Tab #{tabId}
+            </div>
+          </div>
+        </header>
 
-      {/* Content */}
-      <div className="flex-1 p-4 space-y-4">
-        {/* ✅ Ordered Items (from tickets) */}
-        <div className="border rounded-xl p-4">
-          <div className="font-semibold">Ordered Items</div>
+        {/* Error */}
+        {error ? (
+          <div className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
 
-          {orderedLines.length === 0 ? (
-            <div className="mt-2 text-sm opacity-70">No ordered items yet.</div>
-          ) : (
-            <>
-              <div className="mt-3 space-y-2">
-                {orderedLines.map((l, idx) => (
-                  <div
-                    key={String(l.menuItemId || l.nameSnap || idx)}
-                    className="flex justify-between gap-3 text-sm"
-                  >
-                    <div className="min-w-0 truncate">
-                      {l.nameSnap || "Item"} {l.qty > 1 ? `×${l.qty}` : ""}
-                      <span className="ml-2 text-xs opacity-60">
-                        {String(l.status || "NEW").toLowerCase()}
-                      </span>
+        {/* Content */}
+        <main className="flex-1 space-y-4">
+          <SectionCard title="Ordered Items">
+            {orderedLines.length === 0 ? (
+              <div className="rounded-2xl bg-muted/30 px-3 py-3 text-sm text-muted-foreground">
+                No ordered items yet.
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {orderedLines.map((l, idx) => (
+                    <div
+                      key={String(l.menuItemId || l.nameSnap || idx)}
+                      className="flex items-start justify-between gap-3 rounded-2xl bg-muted/20 px-3 py-3 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-foreground">
+                          {l.nameSnap || "Item"} {l.qty > 1 ? `×${l.qty}` : ""}
+                        </div>
+                        <div className="mt-1 text-xs capitalize text-muted-foreground">
+                          {String(l.status || "NEW").toLowerCase()}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 font-medium text-foreground">
+                        {formatEUR((l.priceCentsSnap ?? 0) * (l.qty ?? 0))}
+                      </div>
                     </div>
-                    <div className="shrink-0">
-                      {formatEUR((l.priceCentsSnap ?? 0) * (l.qty ?? 0))}
+                  ))}
+                </div>
+
+                <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3 text-sm">
+                  <span className="text-muted-foreground">Ordered Subtotal</span>
+                  <span className="font-semibold text-foreground">
+                    {formatEUR(orderedSubtotalCents)}
+                  </span>
+                </div>
+              </>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Cart (Not Sent Yet)">
+            {cartItems.length === 0 ? (
+              <div className="rounded-2xl bg-muted/30 px-3 py-3 text-sm text-muted-foreground">
+                Cart is empty.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {cartItems.map((it, idx) => (
+                  <div
+                    key={String(it.menuItemId || it._id || idx)}
+                    className="flex items-start justify-between gap-3 rounded-2xl bg-muted/20 px-3 py-3 text-sm"
+                  >
+                    <div className="min-w-0 truncate font-medium text-foreground">
+                      {it.nameSnap || it.name || "Item"} {it.qty > 1 ? `×${it.qty}` : ""}
+                    </div>
+                    <div className="shrink-0 font-medium text-foreground">
+                      {formatEUR((it.priceCentsSnap ?? it.priceCents ?? 0) * (it.qty || 0))}
                     </div>
                   </div>
                 ))}
               </div>
+            )}
+          </SectionCard>
 
-              <div className="mt-3 flex justify-between text-sm opacity-80">
-                <span>Ordered Subtotal</span>
-                <span className="font-medium">{formatEUR(orderedSubtotalCents)}</span>
-              </div>
-            </>
-          )}
-        </div>
+          <SectionCard
+            title="Totals"
+            description="Total due is taken from the tab totals and includes sent orders, any cart items, and any tip already applied."
+          >
+            <div className="flex items-center justify-between rounded-2xl bg-muted/30 px-4 py-4">
+              <span className="text-sm text-muted-foreground">Total Due</span>
+              <span className="text-lg font-semibold text-foreground">
+                {formatEUR(totalCents)}
+              </span>
+            </div>
+          </SectionCard>
 
-        {/* Optional: Cart (not yet sent) */}
-        <div className="border rounded-xl p-4">
-          <div className="font-semibold">Cart (Not Sent Yet)</div>
-
-          {cartItems.length === 0 ? (
-            <div className="mt-2 text-sm opacity-70">Cart is empty.</div>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {cartItems.map((it, idx) => (
-                <div
-                  key={String(it.menuItemId || it._id || idx)}
-                  className="flex justify-between gap-3 text-sm"
-                >
-                  <div className="min-w-0 truncate">
-                    {it.nameSnap || it.name || "Item"} {it.qty > 1 ? `×${it.qty}` : ""}
-                  </div>
-                  <div className="shrink-0">
-                    {formatEUR((it.priceCentsSnap ?? it.priceCents ?? 0) * (it.qty || 0))}
-                  </div>
+          {status === "OPEN" ? (
+            <SectionCard title="Payment Method">
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={method === "cash" ? "default" : "secondary"}
+                    className="rounded-2xl"
+                    onClick={() => setMethod("cash")}
+                  >
+                    Cash
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={method === "card" ? "default" : "secondary"}
+                    className="rounded-2xl"
+                    onClick={() => setMethod("card")}
+                  >
+                    Card
+                  </Button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Totals */}
-        <div className="border rounded-xl p-4">
-          <div className="flex justify-between text-sm">
-            <span>Total Due</span>
-            <span className="font-semibold">{formatEUR(totalCents)}</span>
-          </div>
-          <div className="mt-1 text-xs opacity-70">
-            Total due is taken from the tab totals (includes sent orders + any cart + tip).
-          </div>
-        </div>
+                <Button
+                  className="w-full rounded-2xl"
+                  onClick={handlePay}
+                  disabled={busy || !hasAnyLines}
+                >
+                  {busy ? "Processing…" : `Confirm Payment (${formatEUR(totalCents)})`}
+                </Button>
 
-        {/* Payment method (only if OPEN) */}
-        {status === "OPEN" ? (
-          <div className="border rounded-xl p-4 space-y-3">
-            <div className="font-semibold">Payment Method</div>
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={method === "cash" ? "default" : "secondary"}
-                onClick={() => setMethod("cash")}
-              >
-                Cash
-              </Button>
-              <Button
-                type="button"
-                variant={method === "card" ? "default" : "secondary"}
-                onClick={() => setMethod("card")}
-              >
-                Card
-              </Button>
-            </div>
-
-            <Button
-              className="w-full"
-              onClick={handlePay}
-              disabled={busy || !hasAnyLines}
-            >
-              {busy ? "Processing…" : `Confirm Payment (${formatEUR(totalCents)})`}
-            </Button>
-
-            {!hasAnyLines ? (
-              <div className="text-xs text-muted-foreground">
-                Nothing to pay yet (no ordered items and cart is empty).
+                {!hasAnyLines ? (
+                  <div className="rounded-2xl bg-muted/30 px-3 py-3 text-xs text-muted-foreground">
+                    Nothing to pay yet. There are no ordered items and the cart is empty.
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        ) : null}
+            </SectionCard>
+          ) : null}
 
-        {/* Close tab (only if PAID) */}
-        {status === "PAID" ? (
-          <div className="border rounded-xl p-4 space-y-3">
-            <div className="text-sm opacity-70">
-              Payment recorded. You can now close the tab and free the table.
-            </div>
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={handleCloseTab}
-              disabled={busy}
-            >
-              {busy ? "Closing…" : "Close Tab"}
-            </Button>
-          </div>
-        ) : null}
+          {status === "PAID" ? (
+            <SectionCard title="Close Tab">
+              <div className="space-y-3">
+                <div className="rounded-2xl bg-success/10 px-3 py-3 text-sm text-muted-foreground">
+                  Payment recorded. You can now close the tab and free the table.
+                </div>
+                <Button
+                  className="w-full rounded-2xl"
+                  variant="outline"
+                  onClick={handleCloseTab}
+                  disabled={busy}
+                >
+                  {busy ? "Closing…" : "Close Tab"}
+                </Button>
+              </div>
+            </SectionCard>
+          ) : null}
 
-        {/* If CLOSED */}
-        {status === "CLOSED" ? (
-          <div className="border rounded-xl p-4">
-            <div className="text-sm opacity-70">This tab is closed.</div>
-            <Button
-              className="mt-3"
-              variant="secondary"
-              onClick={() => navigate("/staff")}
-            >
-              Back to Dashboard
-            </Button>
-          </div>
-        ) : null}
-      </div>
+          {status === "CLOSED" ? (
+            <SectionCard title="Tab Closed">
+              <div className="space-y-3">
+                <div className="rounded-2xl bg-muted/30 px-3 py-3 text-sm text-muted-foreground">
+                  This tab is closed.
+                </div>
+                <Button
+                  className="rounded-2xl"
+                  variant="secondary"
+                  onClick={() => navigate("/staff")}
+                >
+                  Back to Dashboard
+                </Button>
+              </div>
+            </SectionCard>
+          ) : null}
+        </main>
 
-      {/* Footer */}
-      <div className="border-t p-4 flex gap-2">
-        <Button variant="secondary" onClick={() => navigate(-1)}>
-          Back
-        </Button>
-        <Button variant="secondary" onClick={load}>
-          Refresh
-        </Button>
+        {/* Footer */}
+        <footer className="mt-4 flex gap-2 rounded-3xl border border-border/70 bg-card/95 p-4 shadow-sm backdrop-blur">
+          <Button variant="secondary" className="rounded-2xl" onClick={() => navigate(-1)}>
+            Back
+          </Button>
+          <Button variant="secondary" className="rounded-2xl" onClick={load}>
+            Refresh
+          </Button>
+        </footer>
       </div>
     </div>
   );

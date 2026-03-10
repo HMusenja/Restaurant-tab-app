@@ -93,6 +93,7 @@ export default function TabProvider({
     try {
       if (mode === "guest") {
         const res = await fetchActiveTab(token, { signal: ac.signal });
+          console.log("fetchActiveTab success:", res);
         const payload = normalizeGuestActiveTab(res);
         dispatch({ type: "LOAD_SUCCESS", requestId, payload });
         return;
@@ -111,12 +112,24 @@ export default function TabProvider({
           ticketsCount: typeof res?.ticketsCount === "number" ? res.ticketsCount : 0,
         },
       });
-    } catch (e) {
+     } catch (e) {
       if (e?.name === "AbortError") return;
+
+      console.error("fetchActiveTab failed:", {
+        mode,
+        token,
+        message: e?.message,
+        status: e?.response?.status,
+        data: e?.response?.data,
+      });
+
       dispatch({
         type: "LOAD_ERROR",
         requestId,
-        error: e?.message || "Failed to load tab",
+        error:
+          e?.response?.data?.message ||
+          e?.message ||
+          "Failed to load tab",
       });
     }
   }, [mode, token, tabId, normalizeGuestActiveTab]);

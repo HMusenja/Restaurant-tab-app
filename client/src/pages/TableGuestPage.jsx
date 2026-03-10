@@ -7,7 +7,6 @@ import { fetchServiceRequests } from "@/api/servicesApi";
 
 import { useRealtime } from "../contexts/RealtimeContext.jsx";
 import { useMenu } from "@/contexts/MenuContext";
-
 import { useTab } from "@/contexts/TabContext/TabContext";
 
 import TopBar from "../components/guest/TopBar.jsx";
@@ -23,7 +22,7 @@ export default function TableGuestPage() {
   const navigate = useNavigate();
   const rt = useRealtime();
 
-  // ✅ TabContext is now the source of truth for tab + table
+  // TabContext is the source of truth for tab + table
   const {
     status,
     error,
@@ -55,7 +54,7 @@ export default function TableGuestPage() {
       const all = data?.requests ?? [];
       const filtered = all.filter(
         (r) =>
-          String(r.table?.id || r.table?._id || r.table) === String(table.id),
+          String(r.table?.id || r.table?._id || r.table) === String(table.id)
       );
       setRequests(filtered);
     } catch (e) {
@@ -97,19 +96,18 @@ export default function TableGuestPage() {
     loadTickets();
   }, [loadTickets]);
 
-  // ✅ Menu loads from context
+  // Menu loads from context
   useEffect(() => {
     loadMenu();
   }, [loadMenu]);
 
-  // ✅ Realtime registration uses TabContext.refresh() with mutation gating
+  // Realtime registration uses TabContext.refresh() with mutation gating
   useEffect(() => {
     if (!table?.id) return;
 
     const id = rt.registerGuest({
       tableId: table.id,
       reloadTab: async () => {
-        // Prevent “stale reload fights” while user is mutating cart or sending ticket
         if (isMutatingRef?.current) return;
         await refresh();
       },
@@ -121,14 +119,12 @@ export default function TableGuestPage() {
     return () => rt.unregisterGuest(id);
   }, [rt, table?.id, refresh, isMutatingRef, loadTickets, loadRequests, loadMenu]);
 
-  // ✅ Add item uses TabContext action (authoritative server replace inside provider)
   async function handleAdd(menuItemId, qty = 1) {
     clearError?.();
     try {
       await addItem(menuItemId, qty);
       setCartOpen(true);
     } catch (e) {
-      // error is usually set inside provider, but keep safe fallback
       console.warn(e);
     }
   }
@@ -137,8 +133,16 @@ export default function TableGuestPage() {
     return (tab?.items || []).reduce((sum, it) => sum + (it.qty || 0), 0);
   }, [tab?.items]);
 
+  console.log("TableGuestPage session check", {
+  tableStatus: table?.status,
+  tabStatus: tab?.status,
+  table,
+  tab,
+});
+
   const isClosedSession =
     tab?.status === "CLOSED" || (!tab && table?.status === "FREE");
+  console.log("isClosedSession =", isClosedSession);
 
   useEffect(() => {
     if (!isClosedSession) return;
@@ -155,95 +159,115 @@ export default function TableGuestPage() {
   }, [isClosedSession, navigate]);
 
   if (status === "loading" && !table) {
-    return <div className="p-6">Connecting to table…</div>;
-  }
-
-  if (isClosedSession) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-b from-background via-secondary/40 to-background p-6">
-        <div className="max-w-md text-center space-y-4 rounded-2xl bg-card shadow-soft border border-border p-6">
-          <div className="text-2xl font-semibold">Thanks for visiting! 🙌</div>
-          <div className="text-sm text-muted-foreground">
-            Your table has been closed. You’ll be redirected shortly.
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background via-background to-muted/20 p-6">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 text-center shadow-sm">
+            <div className="text-lg font-semibold text-foreground">
+              Connecting to table…
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Please wait while we load your table session.
+            </p>
           </div>
-
-          <button
-            className="mt-2 text-sm font-medium text-primary hover:underline"
-            onClick={() => navigate("/join", { replace: true })}
-          >
-            Go now
-          </button>
         </div>
       </div>
     );
   }
 
+  if (isClosedSession) {
+   return (
+  <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background via-background to-muted/30 p-6">
+      <div className="max-w-md space-y-4 rounded-3xl border border-border bg-card p-6 text-center shadow-lg backdrop-blur-sm">
+        <div className="text-2xl font-semibold text-foreground">
+          Thanks for visiting! 🙌
+        </div>
+
+        <div className="text-sm text-muted-foreground">
+          Your table has been closed. You’ll be redirected shortly.
+        </div>
+
+        <button
+          className="mt-2 inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:brightness-110 active:scale-[0.98]"
+          onClick={() => navigate("/join", { replace: true })}
+          type="button"
+        >
+          Go now
+        </button>
+      </div>
+    </div>
+  </div>
+);
+  }
+
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-b from-background via-secondary/40 to-background overflow-hidden">
-      <TopBar
-        tableNumber={table?.number}
-        itemCount={itemCount}
-        onOpenCart={() => setCartOpen(true)}
-      />
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+      <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-b from-background via-background to-muted/20">
+        <TopBar
+          tableNumber={table?.number}
+          itemCount={itemCount}
+          onOpenCart={() => setCartOpen(true)}
+        />
 
-      <div className="mx-auto w-full max-w-4xl px-4 pt-4 space-y-6">
-        <div className="animate-[fadeIn_.2s_ease-out]">
-          <OrderStatusPanel tickets={tickets} />
-        </div>
+        <div className="mx-auto w-full max-w-4xl px-4 pt-4">
+          <div className="space-y-6">
+            <div className="animate-[fadeIn_.2s_ease-out]">
+              <OrderStatusPanel tickets={tickets} />
+            </div>
 
-        {error ? (
-          <div className="rounded-xl bg-destructive/10 text-destructive p-3 text-sm border border-destructive/20">
-            {error}
-          </div>
-        ) : null}
+            {error ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            ) : null}
 
-        <div className="animate-[fadeIn_.25s_ease-out]">
-          <RequestCard
-            requests={requests}
-            loading={reqLoading}
-            onRefresh={loadRequests}
-            autoOpenOnNew
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-hidden">
-        <div className="mx-auto h-full w-full max-w-4xl px-4">
-          <div className="animate-[fadeIn_.3s_ease-out] h-full">
-            <MenuPanel menu={menuItems} onAdd={handleAdd} />
+            <div className="animate-[fadeIn_.25s_ease-out]">
+              <RequestCard
+                requests={requests}
+                loading={reqLoading}
+                onRefresh={loadRequests}
+                autoOpenOnNew
+              />
+            </div>
           </div>
         </div>
+
+        <div className="flex-1 overflow-hidden">
+          <div className="mx-auto h-full w-full max-w-4xl px-4">
+            <div className="h-full animate-[fadeIn_.3s_ease-out] pt-6">
+              <MenuPanel menu={menuItems} onAdd={handleAdd} />
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setServiceModalOpen(true)}
+          className="fixed bottom-14 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-primary text-primary-foreground shadow-lg ring-1 ring-black/5 transition-transform hover:brightness-110 active:scale-[0.98] dark:ring-white/10"
+          aria-label="Request service"
+        >
+          <Bell className="h-5 w-5" />
+        </button>
+
+        <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+
+        <TabSummaryCard
+          tab={tab}
+          onViewCart={() => setCartOpen(true)}
+          onRequestBill={() => setServiceModalOpen(true)}
+        />
+
+        <RequestServiceModal
+          open={serviceModalOpen}
+          onClose={() => setServiceModalOpen(false)}
+          tableId={table?.id}
+          ensureTabOpen={async () => {
+            await refresh();
+            return tab;
+          }}
+        />
       </div>
-
-      <button
-        type="button"
-        onClick={() => setServiceModalOpen(true)}
-        className="fixed bottom-14 right-4 z-40 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-elevated ring-1 ring-white/30 hover:brightness-110 active:scale-[0.98]"
-        aria-label="Request service"
-      >
-        <Bell className="h-6 w-6" />
-      </button>
-
-      {/* ✅ CartDrawer no longer receives tab/setTab/setError/sendingRef */}
-      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
-
-      <TabSummaryCard
-        tab={tab}
-        onViewCart={() => setCartOpen(true)}
-        onRequestBill={() => setServiceModalOpen(true)}
-      />
-
-      <RequestServiceModal
-        open={serviceModalOpen}
-        onClose={() => setServiceModalOpen(false)}
-        tableId={table?.id}
-        // If your modal needs ensureTabOpen, TabContext should provide ensureTabOpen().
-        // For now, keep it simple: refresh() guarantees you have a tab.
-        ensureTabOpen={async () => {
-          await refresh();
-          return tab; // provider should ideally return the latest tab
-        }}
-      />
     </div>
   );
 }

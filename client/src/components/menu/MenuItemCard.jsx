@@ -1,17 +1,25 @@
 import { memo, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import MenuItemDetailModal from "@/components/menu/MenuItemDetailModal";
 
 const categoryStyles = {
-  Drinks: "bg-sky-100 text-sky-700 border-sky-200",
-  Desserts: "bg-pink-100 text-pink-700 border-pink-200",
-  Starters: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  Mains: "bg-amber-100 text-amber-800 border-amber-200",
+  Drinks:
+    "border-transparent bg-secondary text-secondary-foreground dark:border-border/50 dark:bg-secondary",
+  Desserts:
+    "border-transparent bg-secondary text-secondary-foreground dark:border-border/50 dark:bg-secondary",
+  Starters:
+    "border-transparent bg-secondary text-secondary-foreground dark:border-border/50 dark:bg-secondary",
+  Mains:
+    "border-transparent bg-secondary text-secondary-foreground dark:border-border/50 dark:bg-secondary",
 };
 
-function getCategoryClass(cat) {
-  return categoryStyles[cat] || "bg-secondary text-secondary-foreground border-border";
+function getCategoryClass(category) {
+  return (
+    categoryStyles[category] ||
+    "border-border bg-secondary text-secondary-foreground"
+  );
 }
 
 function fallbackGradient(category) {
@@ -24,54 +32,80 @@ function fallbackGradient(category) {
 function MenuItemCardImpl({ item, onAdd, formatPrice }) {
   const [open, setOpen] = useState(false);
 
-  const image = useMemo(
-    () => item.image || item.imageUrl || item.photoUrl || item.photo || null,
-    [item]
-  );
+  const image = useMemo(() => {
+    return item?.image || item?.imageUrl || item?.photoUrl || item?.photo || null;
+  }, [item]);
 
-  const description = item.description || item.desc || "";
-  const category = item.category || "";
+  const description = item?.description || item?.desc || "";
+  const category = item?.category || "";
   const isUnavailable = item?.available === false;
+
+  function handleOpen() {
+    setOpen(true);
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen(true);
+    }
+  }
+
+  function handleQuickAdd(e) {
+    e.stopPropagation();
+    onAdd?.();
+  }
+
+  function handleModalAdd(qty) {
+    if (!onAdd) return;
+
+    if (typeof qty === "number" && qty > 1) {
+      for (let i = 0; i < qty; i += 1) onAdd();
+      return;
+    }
+
+    onAdd();
+  }
 
   return (
     <>
       <div
         role="button"
         tabIndex={0}
-        onClick={() => setOpen(true)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") setOpen(true);
-        }}
-        className={[
-          "group relative flex gap-4 rounded-2xl border bg-card p-4 shadow-sm transition-all duration-200",
-          "border-border/60 hover:shadow-md hover:border-primary/25 active:scale-[0.99]",
-          // big perf win on long lists (Chromium)
+        onClick={handleOpen}
+        onKeyDown={handleKeyDown}
+        className={cn(
+          "group relative flex gap-4 rounded-3xl border p-4 transition-all duration-200",
+          "border-border bg-card shadow-sm",
+          "hover:border-primary/25 hover:shadow-md active:scale-[0.99]",
           "[content-visibility:auto] [contain-intrinsic-size:120px]",
-          isUnavailable ? "opacity-70" : "",
-        ].join(" ")}
-        aria-label={`Open ${item.name} details`}
+          isUnavailable && "opacity-70"
+        )}
+        aria-label={`Open ${item?.name || "menu item"} details`}
       >
         {/* Image / Gradient */}
-        <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-2xl border border-border/50 bg-secondary">
+        <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-2xl border border-border bg-muted/30">
           {image ? (
             <img
               src={image}
-              alt={item.name}
+              alt={item?.name || "Menu item"}
               loading="lazy"
               decoding="async"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div
-              className={["h-full w-full bg-gradient-to-br", fallbackGradient(category)].join(" ")}
+              className={cn(
+                "h-full w-full bg-gradient-to-br",
+                fallbackGradient(category)
+              )}
             />
           )}
 
-          {/* subtle overlay for “premium food” feel */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
           {isUnavailable && (
-            <div className="absolute left-2 top-2 rounded-full bg-background/90 px-2 py-1 text-[11px] font-semibold text-foreground shadow-sm">
+            <div className="absolute left-2 top-2 rounded-full border border-border bg-background/90 px-2 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur">
               Unavailable
             </div>
           )}
@@ -83,19 +117,19 @@ function MenuItemCardImpl({ item, onAdd, formatPrice }) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="truncate text-base font-semibold text-foreground">
-                  {item.name}
+                  {item?.name || "Unnamed item"}
                 </h3>
 
-                {category && (
+                {category ? (
                   <span
-                    className={[
+                    className={cn(
                       "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
-                      getCategoryClass(category),
-                    ].join(" ")}
+                      getCategoryClass(category)
+                    )}
                   >
                     {category}
                   </span>
-                )}
+                ) : null}
               </div>
 
               {description ? (
@@ -103,23 +137,24 @@ function MenuItemCardImpl({ item, onAdd, formatPrice }) {
                   {description}
                 </p>
               ) : (
-                <p className="mt-1 text-sm text-muted-foreground">Popular choice</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Popular choice
+                </p>
               )}
             </div>
           </div>
 
           {/* Bottom Row */}
           <div className="mt-4 flex items-center justify-between">
-            <span className="text-lg font-bold text-primary">{formatPrice()}</span>
+            <span className="text-lg font-bold text-primary">
+              {formatPrice()}
+            </span>
 
             <Button
               size="sm"
               disabled={isUnavailable}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAdd?.();
-              }}
-              className="rounded-full shadow-sm active:scale-[0.96] transition-transform"
+              onClick={handleQuickAdd}
+              className="rounded-full shadow-sm transition-transform active:scale-[0.96]"
             >
               <Plus className="mr-1 h-4 w-4" />
               Add
@@ -132,7 +167,7 @@ function MenuItemCardImpl({ item, onAdd, formatPrice }) {
         open={open}
         onOpenChange={setOpen}
         item={item}
-        onAdd={(qty) => onAdd?.(item._id, qty)}
+        onAdd={handleModalAdd}
         formatPrice={formatPrice}
       />
     </>

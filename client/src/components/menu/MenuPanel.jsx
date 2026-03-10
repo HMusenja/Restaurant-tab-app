@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { UtensilsCrossed, Search, SlidersHorizontal } from "lucide-react";
 import CategoryTabs from "../guest/CategoryTabs.jsx";
 import MenuItemCard from "./MenuItemCard.jsx";
@@ -16,37 +16,46 @@ function formatEUR(cents) {
 }
 
 export default function MenuPanel({ menu, onAdd }) {
-  
   const { items, loadMenu } = useMenu();
-  
-   const sourceMenu = menu ?? items;
+  const sourceMenu = menu ?? items;
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
-  
   const [onlyAvailable, setOnlyAvailable] = useState(false);
 
-    useMemo(() => {
+  useEffect(() => {
     if (menu === undefined) {
-      // fire and forget
       loadMenu();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menu]);
+  }, [menu, loadMenu]);
 
+  // 1️⃣ Build category list
   const categories = useMemo(() => {
     const set = new Set();
-    for (const m of sourceMenu) {
+    for (const m of Array.isArray(sourceMenu) ? sourceMenu : []) {
       if (m?.category) set.add(m.category);
     }
     return ["All", ...Array.from(set).sort()];
   }, [sourceMenu]);
 
-  const filteredItems = useMemo(() => {
-   let list = Array.isArray(sourceMenu) ? sourceMenu : [];
+  // 2️⃣ Compute counts per category
+  const categoryCounts = useMemo(() => {
+    const counts = { All: sourceMenu.length };
+    for (const item of Array.isArray(sourceMenu) ? sourceMenu : []) {
+      if (!item.category) continue;
+      counts[item.category] = (counts[item.category] || 0) + 1;
+    }
+    return counts;
+  }, [sourceMenu]);
 
-    if (onlyAvailable) list = list.filter((m) => m?.available !== false);
+  // 3️⃣ Filter items based on category, availability, and search
+  const filteredItems = useMemo(() => {
+    let list = Array.isArray(sourceMenu) ? sourceMenu : [];
+
+    if (onlyAvailable) {
+      list = list.filter((m) => m?.available !== false);
+    }
 
     if (activeCategory !== "All") {
       list = list.filter((m) => m?.category === activeCategory);
@@ -62,19 +71,22 @@ export default function MenuPanel({ menu, onAdd }) {
       });
     }
 
-       return list.slice().sort((a, b) => {
+    // Optional: push unavailable items to the end
+    return list.slice().sort((a, b) => {
       const aa = a?.available === false ? 1 : 0;
       const bb = b?.available === false ? 1 : 0;
       return aa - bb;
     });
   }, [sourceMenu, activeCategory, deferredQuery, onlyAvailable]);
 
+  const hasActiveFilters = Boolean(query || onlyAvailable || activeCategory !== "All");
 
-  
   return (
     <div className="flex h-full flex-col">
-      <div className="sticky top-0 z-20 border-b border-border/40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="px-4 pt-4 pb-3">
+      {/* Header + Filters */}
+      <div className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+        <div className="px-4 pb-3 pt-4">
+          {/* Title */}
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="flex items-center gap-2 text-xl font-bold text-foreground">
@@ -88,6 +100,7 @@ export default function MenuPanel({ menu, onAdd }) {
             </div>
           </div>
 
+          {/* Search + Toggle */}
           <div className="mt-4 flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -95,7 +108,7 @@ export default function MenuPanel({ menu, onAdd }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search dishes, drinks, desserts…"
-                className="pl-9 rounded-2xl"
+                className="rounded-2xl border-border bg-background pl-9 shadow-sm"
               />
             </div>
 
@@ -103,7 +116,10 @@ export default function MenuPanel({ menu, onAdd }) {
               type="button"
               variant={onlyAvailable ? "default" : "secondary"}
               onClick={() => setOnlyAvailable((v) => !v)}
-              className={cn("rounded-2xl", onlyAvailable && "shadow-sm")}
+              className={cn(
+                "rounded-2xl border border-border shadow-sm",
+                onlyAvailable && "shadow"
+              )}
               aria-pressed={onlyAvailable}
               title="Toggle available only"
             >
@@ -113,13 +129,16 @@ export default function MenuPanel({ menu, onAdd }) {
           </div>
         </div>
 
+        {/* 4️⃣ Category Tabs with icons and counts */}
         <CategoryTabs
           categories={categories}
           activeCategory={activeCategory}
           onCategoryChange={setActiveCategory}
+          categoryCounts={categoryCounts}
         />
       </div>
 
+      {/* Menu Items */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-40">
         {filteredItems.length > 0 ? (
           <div className="space-y-3">
@@ -133,14 +152,14 @@ export default function MenuPanel({ menu, onAdd }) {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-muted/30 px-6 py-14 text-muted-foreground">
             <UtensilsCrossed className="mb-3 h-12 w-12 opacity-50" />
-            <p className="text-center font-medium">No matching items</p>
-            <p className="mt-1 text-center text-sm">
+            <p className="text-center font-medium text-foreground">No matching items</p>
+            <p className="mt-1 max-w-sm text-center text-sm text-muted-foreground">
               Try a different category or search term.
             </p>
 
-            {(query || onlyAvailable || activeCategory !== "All") && (
+            {hasActiveFilters && (
               <Button
                 variant="secondary"
                 className="mt-5 rounded-2xl"

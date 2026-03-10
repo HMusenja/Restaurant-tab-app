@@ -1,4 +1,3 @@
-// src/pages/admin/StaffUserManagementPage.jsx
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Navigate } from "react-router-dom";
 import { Plus, RefreshCw, Search, Users } from "lucide-react";
@@ -49,7 +48,6 @@ export default function StaffUserManagementPage() {
   const [tempOpen, setTempOpen] = useState(false);
   const [tempCreds, setTempCreds] = useState(null);
 
-  // filters
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("ALL"); // ALL | ACTIVE | DISABLED | DELETED
 
@@ -104,12 +102,13 @@ export default function StaffUserManagementPage() {
       if (status === "ACTIVE") return !isDeleted && isActive;
       if (status === "DISABLED") return !isDeleted && !isActive;
 
-      return true; // ALL
+      return true;
     });
   }, [users, q, status]);
 
   const stats = useMemo(() => {
     const base = { total: 0, active: 0, disabled: 0, deleted: 0 };
+
     for (const u of users ?? []) {
       base.total += 1;
 
@@ -133,6 +132,7 @@ export default function StaffUserManagementPage() {
       if (isActive) base.active += 1;
       else base.disabled += 1;
     }
+
     return base;
   }, [users]);
 
@@ -233,15 +233,15 @@ export default function StaffUserManagementPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-primary" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/15">
+                  <Users className="h-5 w-5 text-primary" />
                 </div>
 
                 <div className="min-w-0">
-                  <div className="text-xs tracking-[0.28em] uppercase text-primary/70">
+                  <div className="text-xs uppercase tracking-[0.28em] text-primary/70">
                     Admin
                   </div>
-                  <h2 className="text-xl md:text-2xl font-semibold text-[hsl(40,20%,95%)] truncate">
+                  <h2 className="truncate text-xl font-semibold text-foreground md:text-2xl">
                     User Management
                   </h2>
                 </div>
@@ -250,22 +250,22 @@ export default function StaffUserManagementPage() {
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                 <Badge
                   variant="secondary"
-                  className="bg-[hsl(40,20%,95%)/8%] text-[hsl(40,10%,70%)]"
+                  className="border border-border bg-muted/40 text-muted-foreground"
                 >
                   {stats.total} total
                 </Badge>
 
-                <Badge className="bg-success/15 text-success border border-success/20">
+                <Badge className="border border-success/20 bg-success/15 text-success">
                   {stats.active} active
                 </Badge>
 
-                <Badge className="bg-warning/15 text-warning border border-warning/20">
+                <Badge className="border border-warning/20 bg-warning/15 text-warning">
                   {stats.disabled} disabled
                 </Badge>
 
                 <Badge
                   variant="secondary"
-                  className="bg-[hsl(0,0%,100%)/6%] text-[hsl(40,10%,60%)]"
+                  className="border border-border bg-muted/40 text-muted-foreground"
                 >
                   {stats.deleted} deleted
                 </Badge>
@@ -282,11 +282,11 @@ export default function StaffUserManagementPage() {
                 aria-label="Refresh users"
                 title="Refresh"
               >
-                <RefreshCw className={cn("w-5 h-5", (loading || busy) && "animate-spin")} />
+                <RefreshCw className={cn("h-5 w-5", (loading || busy) && "animate-spin")} />
               </Button>
 
               <Button className="rounded-2xl" onClick={() => setCreateOpen(true)} disabled={busy}>
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Create User
               </Button>
             </div>
@@ -295,9 +295,9 @@ export default function StaffUserManagementPage() {
 
         {/* Sticky filters */}
         <Card className={cn(adminCardClass(), "sticky top-2 z-10 p-3")}>
-          <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="relative w-full md:max-w-sm">
-              <Search className="w-4 h-4 text-[hsl(40,10%,60%)] absolute left-3 top-3" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, email, role…"
                 value={q}
@@ -314,9 +314,8 @@ export default function StaffUserManagementPage() {
               ))}
             </div>
 
-            <div className="md:ml-auto text-xs text-[hsl(40,10%,55%)]">
-              Showing{" "}
-              <span className="text-[hsl(40,20%,90%)] font-medium">{filtered.length}</span>
+            <div className="text-xs text-muted-foreground md:ml-auto">
+              Showing <span className="font-medium text-foreground">{filtered.length}</span>
             </div>
           </div>
         </Card>
@@ -324,14 +323,14 @@ export default function StaffUserManagementPage() {
         {/* List */}
         <Card className={cn(adminCardClass(), "p-3 md:p-4")}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base text-[hsl(40,20%,92%)]">Users</CardTitle>
+            <CardTitle className="text-base text-foreground">Users</CardTitle>
           </CardHeader>
 
           <CardContent>
             {loading ? (
-              <div className="py-10 text-sm text-[hsl(40,10%,60%)]">Loading users…</div>
+              <div className="py-10 text-sm text-muted-foreground">Loading users…</div>
             ) : filtered.length === 0 ? (
-              <div className="py-10 text-sm text-[hsl(40,10%,60%)]">
+              <div className="py-10 text-sm text-muted-foreground">
                 No users match your filters.
               </div>
             ) : (
@@ -345,7 +344,6 @@ export default function StaffUserManagementPage() {
         </Card>
       </div>
 
-      {/* Modals */}
       <CreateUserModal open={createOpen} onOpenChange={setCreateOpen} onCreate={handleCreate} />
       <TempPasswordModal open={tempOpen} onOpenChange={setTempOpen} creds={tempCreds} />
       <UserDetailModal

@@ -12,10 +12,15 @@ function StatCard({ title, value, description, icon: Icon, trend }) {
   return (
     <Card
       className={cn(
-        // glass card that matches your staff shell
-        "relative overflow-hidden rounded-2xl",
-        "border border-[hsl(40,20%,95%)/10%] bg-[hsl(220,20%,6%)]/45 backdrop-blur-xl",
-        "shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+        "relative overflow-hidden rounded-2xl border backdrop-blur-xl",
+
+        // ✅ LIGHT MODE
+        "border-border bg-card/85 shadow-sm",
+
+        // ✅ DARK MODE (keep your original glass)
+        "border-border dark:border-[hsl(40,20%,95%)/10%]",
+        "dark:bg-[hsl(220,20%,6%)]/45",
+        "dark:shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
       )}
     >
       {/* soft glow accent */}
@@ -34,12 +39,13 @@ function StatCard({ title, value, description, icon: Icon, trend }) {
       <CardContent className="pt-0">
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-3xl font-bold leading-none tracking-tight text-[hsl(40,20%,95%)]">
+            {/* ✅ KPI value readable in both modes */}
+            <div className="text-3xl font-bold leading-none tracking-tight  text-foreground dark:text-[hsl(40,20%,95%)]">
               {value}
             </div>
 
             {description ? (
-              <p className="mt-2 text-xs text-[hsl(40,10%,60%)] leading-relaxed">
+              <p className="mt-2 text-xs leading-relaxed dark:text-muted-foreground dark:text-[hsl(40,10%,60%)]">
                 {description}
               </p>
             ) : null}
@@ -48,8 +54,7 @@ function StatCard({ title, value, description, icon: Icon, trend }) {
           {trend ? (
             <div
               className={cn(
-                "shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold",
-                "border",
+                "shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold border",
                 trend.positive
                   ? "text-success border-success/25 bg-success/10"
                   : "text-destructive border-destructive/25 bg-destructive/10"
@@ -68,10 +73,10 @@ function StatCard({ title, value, description, icon: Icon, trend }) {
         </div>
 
         {/* subtle bottom divider */}
-        <div className="mt-4 h-px w-full bg-[hsl(40,20%,95%)/8%]" />
+        <div className="mt-4 h-px w-full bg-border/60 dark:bg-[hsl(40,20%,95%)/8%]" />
 
         {/* tiny helper row for POS vibe */}
-        <div className="mt-3 flex items-center justify-between text-[11px] text-[hsl(40,10%,55%)]">
+        <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground dark:text-[hsl(40,10%,55%)]">
           <span className="tracking-[0.16em] uppercase">AfroAsiatique</span>
           <span className="text-primary/70">Live</span>
         </div>
@@ -79,7 +84,6 @@ function StatCard({ title, value, description, icon: Icon, trend }) {
     </Card>
   );
 }
-
 function startOfToday() {
   const d = new Date();
   d.setHours(0, 0, 0, 0);

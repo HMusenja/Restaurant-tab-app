@@ -12,12 +12,8 @@ import { Trash2, Pencil } from "lucide-react";
 import { useMenu } from "@/contexts/MenuContext";
 import { cn } from "@/lib/utils";
 
-export default function MenuTable({
-  items,
-  loading,
-  onEdit,
-}) {
-  const { update, remove, saving, deleting } = useMenu();
+export default function MenuTable({ items, loading, onEdit }) {
+  const { update, remove } = useMenu();
 
   const toggleAvailability = async (item) => {
     await update(item._id, { available: !item.available });
@@ -28,25 +24,24 @@ export default function MenuTable({
     await remove(item._id);
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="py-12 text-center text-sm text-[hsl(40,10%,60%)]">
+      <div className="py-12 text-center text-sm text-muted-foreground">
         Loading menu…
       </div>
     );
+  }
 
   return (
-    <div className="rounded-3xl border border-[hsl(40,20%,95%)/10%] 
-      bg-[hsl(220,20%,9%)]/70 backdrop-blur-xl overflow-hidden">
-
+    <div className="overflow-hidden rounded-3xl border border-border bg-card/85 backdrop-blur-xl">
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-[hsl(40,20%,95%)/10%]">
-            <TableHead className="text-[hsl(40,10%,60%)]">Name</TableHead>
-            <TableHead className="text-[hsl(40,10%,60%)]">Category</TableHead>
-            <TableHead className="text-[hsl(40,10%,60%)]">Price</TableHead>
-            <TableHead className="text-[hsl(40,10%,60%)]">Available</TableHead>
-            <TableHead className="text-right text-[hsl(40,10%,60%)]">
+          <TableRow className="border-b border-border hover:bg-transparent">
+            <TableHead className="text-muted-foreground">Name</TableHead>
+            <TableHead className="text-muted-foreground">Category</TableHead>
+            <TableHead className="text-muted-foreground">Price</TableHead>
+            <TableHead className="text-muted-foreground">Available</TableHead>
+            <TableHead className="text-right text-muted-foreground">
               Actions
             </TableHead>
           </TableRow>
@@ -56,14 +51,13 @@ export default function MenuTable({
           {items.map((item) => (
             <TableRow
               key={item._id}
-              className="border-b border-[hsl(40,20%,95%)/5%] 
-              hover:bg-[hsl(40,20%,95%)/4%] transition-colors"
+              className="border-b border-border/60 transition-colors hover:bg-muted/40"
             >
-              <TableCell className="font-medium text-[hsl(40,20%,92%)]">
+              <TableCell className="font-medium text-foreground">
                 {item.name}
               </TableCell>
 
-              <TableCell className="text-[hsl(40,10%,70%)]">
+              <TableCell className="text-muted-foreground">
                 {item.category}
               </TableCell>
 
@@ -78,23 +72,23 @@ export default function MenuTable({
                 />
               </TableCell>
 
-              <TableCell className="text-right space-x-2">
+              <TableCell className="space-x-2 text-right">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="rounded-r "
+                  
                   onClick={() => onEdit(item)}
                 >
-                  <Pencil className="w-4 h-4 text-black" />
+                  <Pencil className="h-4 w-4" />
                 </Button>
 
                 <Button
                   size="sm"
                   variant="destructive"
-                  className="rounded-l"
+                 
                   onClick={() => deleteItem(item)}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </TableCell>
             </TableRow>
@@ -104,7 +98,7 @@ export default function MenuTable({
             <TableRow>
               <TableCell
                 colSpan={5}
-                className="text-center py-12 text-sm text-[hsl(40,10%,60%)]"
+                className="py-12 text-center text-sm text-muted-foreground"
               >
                 No menu items found.
               </TableCell>

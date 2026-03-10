@@ -13,24 +13,28 @@ import { Badge } from "@/components/ui/badge";
 
 import MenuItemSheet from "@/components/admin/menu-admin/MenuItemSheet";
 import MenuTable from "@/components/admin/menu-admin/MenuTable";
+import CategoryTabs from "@/components/guest/CategoryTabs";
 import { cn } from "@/lib/utils";
 
 function glassCardClass(extra = "") {
   return cn(
-    "rounded-3xl border border-[hsl(40,20%,95%)/10%]",
-    "bg-[hsl(220,20%,8%)/70%] backdrop-blur-xl",
-    "shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.45)]",
-    extra,
+    "rounded-3xl border",
+    "border-border bg-card/85 backdrop-blur-xl shadow-sm",
+    "dark:border-[hsl(40,20%,95%)/10%]",
+    "dark:bg-[hsl(220,20%,8%)/70%]",
+    "dark:shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.45)]",
+    extra
   );
 }
 
 function glassInputClass(extra = "") {
   return cn(
     "h-10 rounded-2xl border px-3 text-sm",
-    "bg-[hsl(220,20%,10%)]/80 border-[hsl(40,20%,95%)/12%]",
-    "text-[hsl(40,20%,92%)] placeholder:text-[hsl(40,10%,58%)] placeholder:opacity-100",
+    "bg-background border-border text-foreground placeholder:text-muted-foreground",
     "focus-visible:ring-2 focus-visible:ring-primary/35",
-    extra,
+    "dark:bg-[hsl(220,20%,10%)]/80 dark:border-[hsl(40,20%,95%)/12%]",
+    "dark:text-[hsl(40,20%,92%)] dark:placeholder:text-[hsl(40,10%,58%)] dark:placeholder:opacity-100",
+    extra
   );
 }
 
@@ -47,29 +51,54 @@ export default function MenuManagementPage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [openSheet, setOpenSheet] = useState(false);
 
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  // Load menu on mount
   useEffect(() => {
     loadMenu({ admin: true });
   }, [loadMenu]);
 
+  // Generate categories from items
+  const categories = useMemo(() => {
+    const set = new Set(items.map((i) => i.category).filter(Boolean));
+    return ["All", ...Array.from(set)];
+  }, [items]);
+
+  // Filter items by query, availability, and category
   const filtered = useMemo(() => {
     let result = items;
 
-    if (onlyAvailable) result = result.filter((i) => i.available);
+    if (activeCategory !== "All") {
+      result = result.filter((i) => i.category === activeCategory);
+    }
+
+    if (onlyAvailable) {
+      result = result.filter((i) => i.available);
+    }
 
     if (query.trim()) {
       const q = query.toLowerCase();
       result = result.filter(
         (i) =>
           i.name.toLowerCase().includes(q) ||
-          i.category?.toLowerCase().includes(q),
+          i.category?.toLowerCase().includes(q)
       );
     }
 
     return result;
-  }, [items, query, onlyAvailable]);
+  }, [items, query, onlyAvailable, activeCategory]);
 
   const totalCount = items?.length || 0;
   const shownCount = filtered?.length || 0;
+
+  const categoryCounts = useMemo(() => {
+  const counts = { All: items.length };
+  items.forEach((item) => {
+    if (!item.category) return;
+    counts[item.category] = (counts[item.category] || 0) + 1;
+  });
+  return counts;
+}, [items]);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -87,7 +116,7 @@ export default function MenuManagementPage() {
                 <div className="text-[11px] tracking-[0.24em] uppercase text-primary/70">
                   AfroAsiatique
                 </div>
-                <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-[hsl(40,20%,95%)] truncate">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground dark:text-[hsl(40,20%,95%)] truncate">
                   Menu Management
                 </h2>
               </div>
@@ -96,16 +125,18 @@ export default function MenuManagementPage() {
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
               <Badge
                 variant="secondary"
-                className="bg-[hsl(40,20%,95%)/8%] text-[hsl(40,10%,70%)]"
+                className="bg-muted/50 text-muted-foreground dark:bg-[hsl(40,20%,95%)/8%] dark:text-[hsl(40,10%,70%)]"
               >
                 {shownCount} shown
               </Badge>
+
               <Badge
                 variant="secondary"
-                className="bg-[hsl(40,20%,95%)/6%] text-[hsl(40,10%,60%)]"
+                className="bg-muted/40 text-muted-foreground dark:bg-[hsl(40,20%,95%)/6%] dark:text-[hsl(40,10%,60%)]"
               >
                 {totalCount} total
               </Badge>
+
               {onlyAvailable ? (
                 <Badge className="bg-success/15 text-success border border-success/20">
                   Available only
@@ -128,19 +159,12 @@ export default function MenuManagementPage() {
         </div>
       </Card>
 
-      {/* Filters (better sticky on mobile) */}
-      <Card
-        className={cn(
-          glassCardClass(),
-          "sticky z-10 p-3",
-          // top-2 is often too tight with mobile browser UI; top-3 feels safer
-          "top-3",
-        )}
-      >
+      {/* Filters */}
+      <Card className={cn(glassCardClass(), "sticky z-10 p-3 top-3")}>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           {/* Search */}
           <div className="relative w-full md:max-w-sm">
-            <Search className="w-4 h-4 text-[hsl(40,10%,60%)] absolute left-3 top-3" />
+            <Search className="w-4 h-4 text-muted-foreground dark:text-[hsl(40,10%,60%)] absolute left-3 top-3" />
             <Input
               placeholder="Search menu…"
               value={query}
@@ -149,37 +173,51 @@ export default function MenuManagementPage() {
             />
           </div>
 
-          {/* Toggle (full-width on mobile) */}
+          {/* Toggle */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
-            <div className="flex items-center justify-between sm:justify-start gap-3 rounded-2xl border border-[hsl(40,20%,95%)/10%] bg-[hsl(40,20%,95%)/4%] px-3 py-2 w-full sm:w-auto">
+            <div
+              className={cn(
+                "flex items-center justify-between sm:justify-start gap-3 rounded-2xl border px-3 py-2 w-full sm:w-auto",
+                "border-border bg-muted/40",
+                "dark:border-[hsl(40,20%,95%)/10%] dark:bg-[hsl(40,20%,95%)/4%]"
+              )}
+            >
               <div className="flex items-center gap-2">
                 <Switch
                   checked={onlyAvailable}
                   onCheckedChange={setOnlyAvailable}
                 />
-                <span className="text-sm text-[hsl(40,10%,70%)]">
+                <span className="text-sm text-muted-foreground dark:text-[hsl(40,10%,70%)]">
                   Available only
                 </span>
               </div>
 
-              <span className="text-[11px] text-[hsl(40,10%,55%)] sm:hidden">
+              <span className="text-[11px] text-muted-foreground dark:text-[hsl(40,10%,55%)] sm:hidden">
                 {shownCount}/{totalCount}
               </span>
             </div>
 
-            <div className="text-xs text-[hsl(40,10%,55%)] hidden md:block">
+            <div className="text-xs text-muted-foreground dark:text-[hsl(40,10%,55%)] hidden md:block">
               Tip: Use search + toggle to speed up service ops.
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Table container: allow horizontal scroll on mobile */}
+      {/* Category Tabs */}
+      <CategoryTabs
+        categories={categories}
+        activeCategory={activeCategory}
+        onCategoryChange={setActiveCategory}
+        categoryCounts={categoryCounts}
+      />
+
+      {/* Table container */}
       <div
         className={cn(
-          "rounded-3xl border border-[hsl(40,20%,95%)/10%]",
-          "bg-[hsl(220,20%,8%)/55%] backdrop-blur-xl",
-          "p-2 sm:p-3",
+          "rounded-3xl border p-2 sm:p-3",
+          "border-border bg-card/85 backdrop-blur-xl",
+          "dark:border-[hsl(40,20%,95%)/10%] dark:bg-[hsl(220,20%,8%)/55%]"
         )}
       >
         <div className="-mx-2 sm:mx-0 overflow-x-auto overscroll-x-contain">
@@ -196,8 +234,7 @@ export default function MenuManagementPage() {
           </div>
         </div>
 
-        {/* small helper hint for mobile */}
-        <div className="pt-2 text-[11px] text-[hsl(40,10%,55%)] sm:hidden">
+        <div className="pt-2 text-[11px] text-muted-foreground dark:text-[hsl(40,10%,55%)] sm:hidden">
           Swipe sideways to see all columns.
         </div>
       </div>

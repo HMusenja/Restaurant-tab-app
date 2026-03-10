@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 export function adminCardClass(extra = "") {
   return cn(
-    "rounded-3xl border border-[hsl(40,20%,95%)/10%]",
+    "rounded-3xl border border-border dark:border-[hsl(40,20%,95%)/10%]",
     "bg-[hsl(220,20%,8%)/70%] backdrop-blur-xl",
     "shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.45)]",
     extra,
@@ -38,7 +38,7 @@ export function adminTextareaClass(extra = "") {
 
 export function adminPanelClass(extra = "") {
   return cn(
-    "rounded-2xl border border-[hsl(40,20%,95%)/10%]",
+    "rounded-2xl border border-border dark:border-[hsl(40,20%,95%)/10%]",
     "bg-[hsl(220,20%,8%)/55%] backdrop-blur-xl",
     extra,
   );

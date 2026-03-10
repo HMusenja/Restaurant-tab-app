@@ -1,13 +1,13 @@
 import { SnackbarProvider } from "./contexts/SnackbarContext";
 
-import AppRoutes2 from "./routes/AppRoutes2";
+import AppRoutes from "./routes/AppRoutes";
 
 export default function App() {
   return (
     
 
     <SnackbarProvider>
-      <AppRoutes2 />
+      <AppRoutes />
     </SnackbarProvider>
   );
 }
