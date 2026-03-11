@@ -1,4 +1,3 @@
-// src/components/staff/tables/CreateReservationDialog.jsx
 import { AlertTriangle, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,14 @@ const EMPTY_FORM = {
   time: "",
   notes: "",
 };
+
+function FieldLabel({ children }) {
+  return (
+    <label className="text-sm font-medium tracking-wide text-foreground">
+      {children}
+    </label>
+  );
+}
 
 export default function CreateReservationDialog({
   open,
@@ -67,20 +74,23 @@ export default function CreateReservationDialog({
       ) : null}
 
       <DialogContent
-        className={cn(staffDialogContentClass(), "w-[calc(100vw-1rem)] max-w-lg")}
+        className={cn(
+          staffDialogContentClass(),
+          "w-[calc(100vw-1rem)] max-w-lg rounded-3xl border-border/70"
+        )}
       >
-        <DialogHeader>
-          <DialogTitle>Create Reservation</DialogTitle>
-          <DialogDescription className="text-[hsl(40,15%,58%)]">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
+            Create Reservation
+          </DialogTitle>
+          <DialogDescription className="text-sm leading-6 text-muted-foreground">
             Staff can reserve for any day, including when the table is currently occupied.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div className="space-y-1">
-            <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
-              Name
-            </label>
+          <div className="space-y-2">
+            <FieldLabel>Name</FieldLabel>
             <input
               className={staffFieldClass()}
               placeholder="Guest name"
@@ -89,10 +99,8 @@ export default function CreateReservationDialog({
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
-              Phone
-            </label>
+          <div className="space-y-2">
+            <FieldLabel>Phone</FieldLabel>
             <input
               className={staffFieldClass()}
               placeholder="Phone number"
@@ -101,11 +109,9 @@ export default function CreateReservationDialog({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
-                Party Size
-              </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <FieldLabel>Party Size</FieldLabel>
               <input
                 type="number"
                 min="1"
@@ -116,10 +122,8 @@ export default function CreateReservationDialog({
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
-                Date
-              </label>
+            <div className="space-y-2">
+              <FieldLabel>Date</FieldLabel>
               <input
                 type="date"
                 className={staffFieldClass()}
@@ -129,11 +133,9 @@ export default function CreateReservationDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
-                Time
-              </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <FieldLabel>Time</FieldLabel>
               <input
                 type="time"
                 className={staffFieldClass()}
@@ -142,13 +144,11 @@ export default function CreateReservationDialog({
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
-                Status
-              </label>
+            <div className="space-y-2">
+              <FieldLabel>Status</FieldLabel>
               <div
                 className={cn(
-                  "flex h-11 items-center rounded-2xl border px-4 text-sm",
+                  "flex h-11 items-center rounded-2xl border px-4 text-sm font-medium",
                   isOccupied
                     ? "border-warning/30 bg-warning/10 text-warning"
                     : "border-border bg-background text-muted-foreground"
@@ -159,10 +159,8 @@ export default function CreateReservationDialog({
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium tracking-wide text-[hsl(40,25%,78%)]">
-              Notes
-            </label>
+          <div className="space-y-2">
+            <FieldLabel>Notes</FieldLabel>
             <textarea
               className={staffTextareaClass()}
               placeholder="Optional notes (e.g. birthday, window seat)"
@@ -173,7 +171,7 @@ export default function CreateReservationDialog({
           </div>
 
           {isOccupied ? (
-            <div className="rounded-2xl border border-warning/20 bg-warning/10 px-3 py-3 text-xs text-muted-foreground dark:text-[hsl(40,10%,60%)]">
+            <div className="rounded-2xl border border-warning/20 bg-warning/10 px-3 py-3 text-xs text-muted-foreground">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 <span>
@@ -185,7 +183,7 @@ export default function CreateReservationDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-2">
           <Button variant="outline" onClick={() => onOpenChange?.(false)}>
             Cancel
           </Button>
